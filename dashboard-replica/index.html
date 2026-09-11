@@ -2723,15 +2723,31 @@
   // "Review quotes" has a real destination (Marketplace) but no real
   // completion event exists yet anywhere in the product, so it stays a
   // normal clickable row that never shows checked, rather than faking a
-  // done-state. "Complete plan review" has no real destination at all yet
-  // (see marketplace/index.html's own dev note on this same line item) —
-  // shown as Coming Soon instead of a dead row that looks clickable but isn't.
+  // done-state (marked `evergreen: true` below so it doesn't stop the nav
+  // badge from ever clearing — see that logic further down). "Complete
+  // plan review" has no real destination at all yet (see
+  // marketplace/index.html's own dev note on this same line item) — shown
+  // as Coming Soon instead of a dead row that looks clickable but isn't.
+  //
+  // SKUNKWORKS — two new rows added 2026-09-11, per Alex: "when we click
+  // on credits we should have get my financial life set up.. and if they
+  // even add one thing there we give them plus 10 and also add Rate Watch
+  // and anything they add on that will be plus 10." `done` is derived
+  // live from the real saved-accounts array on every call (not a
+  // dashboardProgress flag) — self-correcting for anyone who already had
+  // accounts saved, no separate state to drift out of sync. The actual
+  // one-time +10 award for each happens in addSavedAccount() below, right
+  // at the real transition (no account → first account; no home insurance
+  // → first home insurance).
   function earnRailRowsConfig() {
+    const savedAccounts = getSavedAccounts();
     return [
       { label: 'Complete your profile', pts: '+10', done: !!dashboardProgress.goalKnown },
       { label: 'Schedule with advisor', pts: '+25', done: !!dashboardProgress.goalKnown },
+      { label: 'Set up My Financial Life', pts: '+10', done: savedAccounts.length > 0, dest: "openAccountsScreen()" },
       { label: 'Submit insurance info', pts: '+10', done: !!dashboardProgress.autoInsuranceDone, dest: "goToWorkflow('insurance')" },
-      { label: 'Review quotes', pts: '+10', done: false, dest: "window.location.href=aaExternalHref('marketplace/')" },
+      { label: 'Add to Rate Watch', pts: '+10', done: savedAccounts.some(function (a) { return a.category === 'homeinsurance'; }), dest: "openAccountsScreen('homeinsurance')" },
+      { label: 'Review quotes', pts: '+10', done: false, evergreen: true, dest: "window.location.href=aaExternalHref('marketplace/')" },
       { label: 'Beneficiary audit', pts: '+10', done: !!dashboardProgress.beneficiaryAuditDone, dest: "window.location.href=aaExternalHref('vault/')" },
       { label: 'Complete plan review', pts: '+10', soon: true },
     ];
@@ -2778,8 +2794,15 @@
     // actually still unclaimed, and disappears once nothing real is left
     // to earn — same rows config the two real lists above already use,
     // so there's no second source of truth to drift out of sync.
+    // 2026-09-11 follow-up, per Alex — still showing "from the first
+    // screen on" even after the fix above: correct, because "Review
+    // quotes" is `done: false` FOREVER by design (no completion event
+    // exists for it), so the old condition below could never actually go
+    // false. It's excluded here via its new `evergreen: true` flag — an
+    // always-available action isn't the kind of "you still have
+    // something to claim" signal this badge is for.
     const badge = document.querySelector('#tutPointsPill .points-badge');
-    if (badge) badge.style.display = rows.some(function (r) { return !r.soon && !r.done; }) ? 'flex' : 'none';
+    if (badge) badge.style.display = rows.some(function (r) { return !r.soon && !r.evergreen && !r.done; }) ? 'flex' : 'none';
   }
   // 2026-09-04 — rewritten around the shared session (see shared.js's
   // header note) instead of raw URL params, now that Marketplace is a real,
@@ -3512,6 +3535,17 @@
     const normalized = rawUrl ? normalizeAccountUrl(rawUrl) : null;
     const domain = normalized ? domainFromAccountUrl(normalized) : null;
     const accounts = getSavedAccounts();
+    // SKUNKWORKS — real +10 credit awards, 2026-09-11, per Alex: "when we
+    // click on credits we should have get my financial life set up.. and
+    // if they even add one thing there we give them plus 10 and also add
+    // Rate Watch and anything they add on that will be plus 10." Checked
+    // BEFORE the push below, against the real saved-accounts array, so
+    // each only ever fires once — at the actual transition (no account →
+    // first account; no home insurance → first home insurance) — not on
+    // every later add. If someone's very first account happens to be a
+    // home insurance one, both fire (two separate, real milestones).
+    const isFirstAccountEver = accounts.length === 0;
+    const hadHomeInsuranceAlready = accounts.some(function (a) { return a.category === 'homeinsurance'; });
     accounts.push(Object.assign({
       id: Date.now() + '_' + Math.random().toString(36).slice(2),
       category: category,
@@ -3525,6 +3559,9 @@
     // account is saved, not just on page load, so adding a Home Insurance
     // tile can surface the alert immediately without a refresh.
     if (typeof renderRateWatchBox === 'function') renderRateWatchBox();
+    if (isFirstAccountEver) addLiveCredits(10);
+    if (category === 'homeinsurance' && !hadHomeInsuranceAlready) addLiveCredits(10);
+    if (typeof renderEarnRail === 'function') renderEarnRail();
   }
   function toggleCategoryNA(key, checked) {
     const map = getAccountNAMap();
