@@ -2759,6 +2759,27 @@
         return '<div class="' + cls + '"' + click + '><span>' + check + r.label + arrow + '</span><span class="vesting-pts">' + r.pts + '</span></div>';
       }).join('');
     }
+    // SKUNKWORKS — real bug found and fixed 2026-09-11, per Alex: "how
+    // come it shows the plus 10 credits in the little red.. but it
+    // doesn't add up in the other place.. and than when i goto credits
+    // header.. it shows it complete?" Root cause: the red ".points-badge"
+    // circle next to the nav credits pill has always just been a
+    // hardcoded "+10" in the HTML, never wired to anything — permanently
+    // visible regardless of real state, implying an unclaimed +10 that
+    // isn't actually there. The real +10 item it was presumably meant to
+    // represent, "Complete your profile," is marked done the moment
+    // onboarding finishes (see earnRailRowsConfig above), which is why
+    // opening the Earn tab shows it already checked off — the badge and
+    // the real earn list were never telling the same story. Every other
+    // earn-related element in this file goes out of its way to never
+    // show a done/pending state that isn't real (see this function's own
+    // 2026-09-08 dev note on "Review quotes"); this badge was the one
+    // exception. Now it only shows when a real, non-"soon" row is
+    // actually still unclaimed, and disappears once nothing real is left
+    // to earn — same rows config the two real lists above already use,
+    // so there's no second source of truth to drift out of sync.
+    const badge = document.querySelector('#tutPointsPill .points-badge');
+    if (badge) badge.style.display = rows.some(function (r) { return !r.soon && !r.done; }) ? 'flex' : 'none';
   }
   // 2026-09-04 — rewritten around the shared session (see shared.js's
   // header note) instead of raw URL params, now that Marketplace is a real,
@@ -4420,6 +4441,7 @@
   tutSteps.splice(tutSteps.findIndex(function (s) { return s.id === 'tutExchangeTeaser'; }), 0, {
     id: 'rateWatchIntro',
     eyebrow: '🏠 Rate Watch',
+    cardAccent: true,
     icon: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="7" stroke="#0D3B66" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="#F4D35E" stroke-width="2"/><line x1="17" y1="17" x2="24" y2="24" stroke="#0D3B66" stroke-width="2" stroke-linecap="round"/></svg>`,
     title: "We'll watch for you.",
     body: "Some apps quietly watch your bank account to flag an old subscription still draining your money. We watch something different for insurance: not your bank account, but public rate filings — and we'll flag it the moment your carrier raises rates where you live. Just tell us who covers your home, your state, and roughly what you pay.",
@@ -4527,6 +4549,17 @@
       if (step.eyebrow) { eyebrowEl.textContent = step.eyebrow; eyebrowEl.style.display = 'flex'; }
       else { eyebrowEl.style.display = 'none'; eyebrowEl.textContent = ''; }
     }
+    // SKUNKWORKS — real bug found and fixed 2026-09-11, per Alex: "is the
+    // rate watch bubble that comes up in the tutorial back in the same
+    // place with no other contrast? its getting lost again?" Correct —
+    // #tutCard is one shared plain-white bubble for every single step;
+    // the small gold eyebrow label added earlier wasn't enough to keep
+    // this step from reading as just another identical white card
+    // floating over the page, the same blending-in problem as the
+    // dashboard box before its own restyle. Reuses that exact fix here
+    // (--yellow-bg / --yellow-dark) so the tutorial moment and the
+    // persistent box read as the same feature.
+    card.classList.toggle('tut-card-accent', !!step.cardAccent);
     document.getElementById('tutTitle').textContent = step.title;
     // 2026-09-08, per Alex: shorten box content on mobile so it isn't
     // crowded on a small screen — an optional per-step bodyMobile falls
@@ -4828,6 +4861,14 @@
   .tut-dot  { width: 6px; height: 6px; border-radius: 50%; background: #ddd; transition: all 0.2s; }
   .tut-dot.on { background: #F4D35E; width: 18px; border-radius: 99px; }
   #tutEyebrow { display: none; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #C9A227; margin-bottom: 6px; font-family: 'Outfit', sans-serif; }
+  /* SKUNKWORKS — Rate Watch tutorial card accent, 2026-09-11. Opt-in via
+     step.cardAccent (only rateWatchIntro sets it) so every other step's
+     card is untouched. Same --yellow-bg/--yellow-dark treatment as the
+     persistent dashboard box, for the same reason: a plain white card
+     was blending into the page with nothing to visually mark it as this
+     particular feature. */
+  #tutCard.tut-card-accent { background: var(--yellow-bg); border: 1.5px solid var(--yellow-dark); }
+  #tutCard.tut-card-accent #tutIcon { background: rgba(244,211,94,0.25); }
   #tutIcon  { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: #F0F4FF; border-radius: 10px; margin-bottom: 12px; }
   #tutTitle { font-size: 14px; font-weight: 700; color: #0D3B66; margin-bottom: 6px; font-family: 'Outfit', sans-serif; }
   #tutBody  { font-size: 12px; color: #555; line-height: 1.6; margin-bottom: 14px; font-family: 'Outfit', sans-serif; }
