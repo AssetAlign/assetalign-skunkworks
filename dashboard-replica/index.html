@@ -1567,14 +1567,18 @@
        reads as its own distinct thing sitting between two navy elements
        (.decision-banner above, .credits-hero below) rather than looking
        like part of either one. */
-    .rate-watch-alert { display: flex; align-items: center; gap: 14px; background: var(--white); border: 1.5px solid var(--yellow-dark); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; }
-    .rate-watch-alert-icon { font-size: 22px; flex-shrink: 0; }
-    .rate-watch-alert-body { flex: 1; min-width: 0; }
-    .rate-watch-alert-title { font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
-    .rate-watch-alert-sub { font-size: 12px; color: var(--muted); line-height: 1.5; }
-    .rate-watch-alert-cta { flex-shrink: 0; background: var(--navy); color: var(--white); border: none; border-radius: 8px; padding: 9px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap; }
-    .rate-watch-alert-cta:hover { background: var(--navy-mid); }
-    @media (max-width: 700px) { .rate-watch-alert { flex-wrap: wrap; } .rate-watch-alert-cta { width: 100%; } }
+    .rate-watch-box { background: var(--white); border: 1.5px solid var(--yellow-dark); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; }
+    .rate-watch-eyebrow { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--yellow-dark); margin-bottom: 8px; }
+    .rate-watch-row { display: flex; align-items: center; gap: 14px; }
+    .rate-watch-icon { font-size: 22px; flex-shrink: 0; }
+    .rate-watch-body { flex: 1; min-width: 0; }
+    .rate-watch-title { font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+    .rate-watch-sub { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .rate-watch-cta { flex-shrink: 0; background: var(--navy); color: var(--white); border: none; border-radius: 8px; padding: 9px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap; }
+    .rate-watch-cta:hover { background: var(--navy-mid); }
+    .rate-watch-cta.ghost { background: transparent; color: var(--navy); border: 1px solid var(--border); }
+    .rate-watch-cta.ghost:hover { background: var(--gray); }
+    @media (max-width: 700px) { .rate-watch-row { flex-wrap: wrap; } .rate-watch-cta { width: 100%; } }
 
     /* ── NUDGE — 2026-09-03, two rounds. Round 1: moved out of the separate
          white sidebar into the goal card itself (it "felt like the
@@ -1807,11 +1811,12 @@
     <div class="decision-banner-right">Every credit you earn is a dollar saved on your next financial move</div>
   </div>
 
-  <!-- SKUNKWORKS — Insurance Rate Watch alert. Sits here, between the
-       decision banner and the credits hero, on purpose — not inside
-       either one. Empty/hidden until renderRateWatchAlert() finds a real
-       match against a saved Home Insurance account; see that function. -->
-  <div id="rateWatchAlert" style="display:none;"></div>
+  <!-- SKUNKWORKS — Rate Watch box. Sits here, between the decision banner
+       and the credits hero, on purpose — not inside either one. Always
+       populated by renderRateWatchBox() with one of three real states
+       (invite / watching / active finding) — see that function; it's
+       never left empty the way the id name here might suggest. -->
+  <div id="rateWatchAlert"></div>
 
   <!-- ── HERO + NUDGE ROW ── -->
     <!-- Goal hero -->
@@ -3189,26 +3194,61 @@
   // Lives between .decision-banner and .credits-hero — deliberately its own
   // element, not folded into either, per Alex 2026-09-11: "without
   // expanding the blue box we want to have it live above the Your goal
-  // whole thing." Renders nothing at all when there's no real match — this
-  // replaces the earlier version of this feature that showed a fabricated
-  // match unconditionally, which was wrong and already corrected once.
-  function renderRateWatchAlert() {
+  // whole thing." 2026-09-11 update, per Alex: "should we coin a phrase..
+  // like Rate Watch and have that be a separate little box" — this now
+  // ALWAYS renders something, giving the concept a persistent, named home
+  // instead of only appearing during the one-time tutorial or when there
+  // happens to be live news. Three real states, in order of how likely a
+  // member actually is to be in them: nothing added yet (invite), watching
+  // with nothing to report (the common steady state), and an active match
+  // (the original alert, unchanged in substance). The eyebrow label is the
+  // one thing every state shares, so "Rate Watch" reads as one consistent
+  // feature name rather than three unrelated messages.
+  function renderRateWatchBox() {
     const container = document.getElementById('rateWatchAlert');
     if (!container) return;
+    const homeAccounts = getSavedAccounts().filter(function (a) { return a.category === 'homeinsurance'; });
     const match = findRateWatchMatch();
-    if (!match) { container.innerHTML = ''; container.style.display = 'none'; return; }
-    const f = match.finding;
-    const verb = f.isDecrease ? 'may have gone down' : 'recently changed';
-    container.style.display = 'block';
-    container.innerHTML =
-      '<div class="rate-watch-alert">' +
-        '<div class="rate-watch-alert-icon">🏠</div>' +
-        '<div class="rate-watch-alert-body">' +
-          '<div class="rate-watch-alert-title">Insurance Rate Watch — ' + match.account.name + ' rates ' + verb + ' in ' + f.state + '</div>' +
-          '<div class="rate-watch-alert-sub">' + match.account.name + ' filed a ' + f.pct + ' homeowners rate change, effective ' + f.effective + ' (' + f.source + '). This may be a good time to check your own coverage.</div>' +
+    const eyebrow = '<div class="rate-watch-eyebrow">🏠 Rate Watch</div>';
+
+    if (match) {
+      const f = match.finding;
+      const verb = f.isDecrease ? 'may have gone down' : 'recently changed';
+      container.innerHTML = '<div class="rate-watch-box">' + eyebrow +
+        '<div class="rate-watch-row">' +
+          '<div class="rate-watch-icon">📣</div>' +
+          '<div class="rate-watch-body">' +
+            '<div class="rate-watch-title">' + match.account.name + ' rates ' + verb + ' in ' + f.state + '</div>' +
+            '<div class="rate-watch-sub">' + match.account.name + ' filed a ' + f.pct + ' homeowners rate change, effective ' + f.effective + ' (' + f.source + '). This may be a good time to check your own coverage.</div>' +
+          '</div>' +
+          '<button class="rate-watch-cta" onclick="window.location.href=aaExternalHref(\'marketplace/?dept=insurance\')">Review →</button>' +
+        '</div></div>';
+      return;
+    }
+
+    if (homeAccounts.length) {
+      const acct = homeAccounts[0];
+      const state = (acct.state || aaLoadSession().state || '').toUpperCase();
+      container.innerHTML = '<div class="rate-watch-box">' + eyebrow +
+        '<div class="rate-watch-row">' +
+          '<div class="rate-watch-icon">✓</div>' +
+          '<div class="rate-watch-body">' +
+            '<div class="rate-watch-title">Watching ' + acct.name + (state ? ' in ' + state : '') + '</div>' +
+            '<div class="rate-watch-sub">We check public rate filings for you — no bank account needed. We\'ll let you know the moment something changes.</div>' +
+          '</div>' +
+        '</div></div>';
+      return;
+    }
+
+    container.innerHTML = '<div class="rate-watch-box">' + eyebrow +
+      '<div class="rate-watch-row">' +
+        '<div class="rate-watch-icon">🏠</div>' +
+        '<div class="rate-watch-body">' +
+          '<div class="rate-watch-title">We\'ll watch your insurance rates for you.</div>' +
+          '<div class="rate-watch-sub">Add your home insurance below and tell us your state — we\'ll watch public rate filings and let you know if your carrier changes rates where you live.</div>' +
         '</div>' +
-        '<button class="rate-watch-alert-cta" onclick="window.location.href=aaExternalHref(\'marketplace/?dept=insurance\')">Review →</button>' +
-      '</div>';
+        '<button class="rate-watch-cta ghost" onclick="openAccountsScreen(\'homeinsurance\')">Add it →</button>' +
+      '</div></div>';
   }
 
   const ACCOUNT_CATEGORIES = [
@@ -3444,7 +3484,7 @@
     // SKUNKWORKS — Insurance Rate Watch: re-check for a match every time an
     // account is saved, not just on page load, so adding a Home Insurance
     // tile can surface the alert immediately without a refresh.
-    if (typeof renderRateWatchAlert === 'function') renderRateWatchAlert();
+    if (typeof renderRateWatchBox === 'function') renderRateWatchBox();
   }
   function toggleCategoryNA(key, checked) {
     const map = getAccountNAMap();
@@ -3619,7 +3659,7 @@
     });
   })();
   renderAccountsShelf();
-  renderRateWatchAlert(); // SKUNKWORKS — Insurance Rate Watch, see its own function above
+  renderRateWatchBox(); // SKUNKWORKS — Insurance Rate Watch, see its own function above
 
   // ── NUDGE ──
   // 2026-09-03 — Alex: the insurance pitch used to be shown immediately,
