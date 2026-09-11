@@ -1563,24 +1563,23 @@
     .decision-banner-left { display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 700; color: var(--yellow); }
     .decision-banner-right { font-size: 12px; color: rgba(255,255,255,0.4); font-style: italic; }
 
-    /* SKUNKWORKS — Insurance Rate Watch box. 2026-09-11: now lives inside
-       .credits-hero (see the HTML above), so this is restyled to the
-       hero's own translucent-glass-on-navy language instead of the old
-       white/gold card — same gold-tinted highlight treatment already
-       used by .goal-track-callout elsewhere in this same hero, so it
-       reads as native to the box rather than a foreign element dropped
-       into it. */
-    .rate-watch-box { background: rgba(244,211,94,0.12); border: 1px solid rgba(244,211,94,0.35); border-radius: 10px; padding: 14px 18px; margin-bottom: 18px; }
-    .rate-watch-eyebrow { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--yellow); margin-bottom: 8px; }
+    /* SKUNKWORKS — Insurance Rate Watch box. 2026-09-11, third placement:
+       now its own full-width section inside .dash-tile-columns (see the
+       HTML/nth-child(8) CSS below) — a plain white card matching
+       .egs-card/.passport-preview, since this sits on the page's light
+       background again, not navy. The gold eyebrow is the one thing
+       carried over from the earlier in-hero attempt for brand identity. */
+    .rate-watch-box { background: var(--white); border: 1.5px solid var(--border); border-radius: 16px; padding: 20px 22px; margin-bottom: 20px; }
+    .rate-watch-eyebrow { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--yellow-dark); margin-bottom: 8px; }
     .rate-watch-row { display: flex; align-items: center; gap: 14px; }
     .rate-watch-icon { font-size: 22px; flex-shrink: 0; }
     .rate-watch-body { flex: 1; min-width: 0; }
-    .rate-watch-title { font-size: 13.5px; font-weight: 700; color: var(--white); margin-bottom: 3px; }
-    .rate-watch-sub { font-size: 12px; color: rgba(255,255,255,0.7); line-height: 1.5; }
-    .rate-watch-cta { flex-shrink: 0; background: var(--yellow); color: var(--navy); border: none; border-radius: 8px; padding: 9px 16px; font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
-    .rate-watch-cta:hover { background: #e8c34f; }
-    .rate-watch-cta.ghost { background: transparent; color: var(--white); border: 1px solid rgba(255,255,255,0.3); }
-    .rate-watch-cta.ghost:hover { background: rgba(255,255,255,0.08); }
+    .rate-watch-title { font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+    .rate-watch-sub { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .rate-watch-cta { flex-shrink: 0; background: var(--navy); color: var(--white); border: none; border-radius: 8px; padding: 9px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap; }
+    .rate-watch-cta:hover { background: var(--navy-mid); }
+    .rate-watch-cta.ghost { background: transparent; color: var(--navy); border: 1px solid var(--border); }
+    .rate-watch-cta.ghost:hover { background: var(--gray); }
     @media (max-width: 700px) { .rate-watch-row { flex-wrap: wrap; } .rate-watch-cta { width: 100%; } }
 
     /* ── NUDGE — 2026-09-03, two rounds. Round 1: moved out of the separate
@@ -1626,6 +1625,30 @@
     .dash-tile-columns > *:nth-child(4) { grid-column: 1; grid-row: 3; } /* activity-section */
     .dash-tile-columns > *:nth-child(5) { grid-column: 2; grid-row: 2; } /* credit-projection */
     .dash-tile-columns > *:nth-child(6) { grid-column: 2; grid-row: 3; } /* gift-hero-card — 2026-09-09 */
+    /* SKUNKWORKS — Rate Watch box, 2026-09-11. Spans both columns as its
+       own full-width row rather than sharing a narrow column with
+       another card — its content (one eyebrow + one line + a button) is
+       a single horizontal row, not something that benefits from a
+       column-width constraint the way the other cards here do.
+       IMPORTANT — this is nth-child(8), not (7): counting real DOM
+       children here (not the stale numbers in the nth-child(1)-(6)
+       comments above) turned up an existing, unrelated drift — there's
+       an uncommented 7th child, .partner-logo-strip#tutPartnerLogos,
+       sitting between passport-preview and exchange-hero#tutExchangeTeaser
+       in the actual markup, which the nth-child(3)-(6) rules above were
+       never updated for. That means every card from "Explore the
+       Marketplace" onward has been landing one nth-child rule off from
+       what its own comment says for a while now — worth a real look
+       separately (likely present in production dashboard-v2 too, not
+       just this replica), but out of scope for the Rate Watch placement
+       task, so left as-is here. #rateWatchAlert is placed correctly for
+       the ACTUAL current DOM order (8th child; giftHeroCard, 7th, has no
+       rule of its own and auto-flows into row 4 as a result — also part
+       of the same pre-existing drift, also left untouched). The
+       credits-detail-modal that follows in the file is `position:fixed`,
+       so it's excluded from grid item placement per spec regardless of
+       its own nth-child number. */
+    .dash-tile-columns > *:nth-child(8) { grid-column: 1 / -1; grid-row: 5; }
     @media (max-width: 760px) {
       .dash-tile-columns { grid-template-columns: 1fr; }
       .dash-tile-columns > *:nth-child(1) { grid-column: 1; grid-row: 1; }
@@ -1634,6 +1657,8 @@
       .dash-tile-columns > *:nth-child(4) { grid-column: 1; grid-row: 4; }
       .dash-tile-columns > *:nth-child(5) { grid-column: 1; grid-row: 5; }
       .dash-tile-columns > *:nth-child(6) { grid-column: 1; grid-row: 6; }
+      .dash-tile-columns > *:nth-child(7) { grid-column: 1; grid-row: 7; }
+      .dash-tile-columns > *:nth-child(8) { grid-column: 1; grid-row: 8; }
     }
     /* Explicit dark background now (not the translucent-white-on-dark-parent
        trick from round 1) — .nudge-sidebar is a top-level section now, on
@@ -1830,19 +1855,6 @@
             </div>
           </div>
         </div>
-
-        <!-- SKUNKWORKS — Rate Watch box. 2026-09-11: moved inside the
-             credits hero itself (was previously its own white/gold box
-             between .decision-banner and .credits-hero) — per Alex, "the
-             rate watch nudge zone would be part of the blue box." Sits
-             above the goal card, restyled to the hero's own translucent
-             glass-on-navy language (see .rate-watch-box) instead of the
-             old white/gold treatment, which only made sense outside the
-             hero. Always populated by renderRateWatchBox() with one of
-             three real states (invite / watching / active finding) — see
-             that function; it's never left empty the way the id name
-             here might suggest. -->
-        <div id="rateWatchAlert"></div>
 
         <!-- DEV NOTE: goal card is now driven by the priority picked during onboarding
              (passed in as ?goal=home|debt|invest|retire|protect via the redirect from
@@ -2409,6 +2421,26 @@
       <button class="btn-nudge-no" style="width:100%;text-align:center;margin-top:8px;color:rgba(255,255,255,0.65);" onclick="closeGiftForm()">Cancel</button>
     </div>
   </div>
+
+  <!-- SKUNKWORKS — Rate Watch box. 2026-09-11, second placement change
+       the same day: was briefly inside .credits-hero (see git history),
+       but per Alex, rejected a third time — top banner, standalone box
+       between the decision banner and hero, and inside the hero itself
+       have all been tried and didn't land. Landed instead on treating it
+       as its OWN section, a peer to the other secondary cards above
+       (How Align Credits Work / Financial Passport / Marketplace teaser
+       / etc.) rather than competing for attention with the hero or the
+       one "next step" nudge card — full-width row of its own at the
+       bottom of .dash-tile-columns (see the nth-child(7) CSS rule) since
+       its content doesn't need two narrow columns. Restyled back to a
+       plain white card matching .egs-card/.passport-preview (this is a
+       light page background here, not navy, so the on-navy glass styling
+       from the hero attempt doesn't apply) — the gold "Rate Watch"
+       eyebrow is still the one thing that carries the brand identity.
+       Always populated by renderRateWatchBox() with one of three real
+       states (invite / watching / active finding) — see that function;
+       it's never left empty the way the id name here might suggest. -->
+  <div id="rateWatchAlert"></div>
 
   <!-- ── CREDITS DETAIL MODAL — the full earn/vest/redeem breakdown that
        used to sit directly on the dashboard; reachable from the link above
@@ -3200,12 +3232,17 @@
     return null;
   }
 
-  // Lives inside .credits-hero itself, above the goal card — per Alex
-  // 2026-09-11, reversing an earlier call the same day ("without expanding
-  // the blue box we want to have it live above the Your goal whole thing"):
-  // "i was actually thinking the rate watch nudge zone would be part of the
-  // blue box." Styled to the hero's own glass-on-navy language now instead
-  // of the earlier standalone white/gold card (see .rate-watch-box CSS).
+  // Lives as its own full-width section inside .dash-tile-columns now, a
+  // peer to sections like "How Align Credits Work" — per Alex 2026-09-11,
+  // after rejecting two earlier placements the same day: a standalone box
+  // between the decision banner and the hero ("it really looks strange..
+  // you put it on the top banner"), then inside the hero itself ("i still
+  // don't like the whole Rate Watch placement.. i wonder where else we
+  // could put it"). The read: no single box was going to work for all
+  // three states competing with the hero/goal card for top-of-page
+  // attention — treating it as one more secondary section instead settles
+  // that. Restyled back to a plain white card (see .rate-watch-box CSS)
+  // since it's on the page's light background again here, not navy.
   // 2026-09-11 update, per Alex: "should we coin a phrase..
   // like Rate Watch and have that be a separate little box" — this now
   // ALWAYS renders something, giving the concept a persistent, named home
@@ -4394,8 +4431,8 @@
     eyebrow: '🏠 Rate Watch',
     icon: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="7" stroke="#0D3B66" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="#F4D35E" stroke-width="2"/><line x1="17" y1="17" x2="24" y2="24" stroke="#0D3B66" stroke-width="2" stroke-linecap="round"/></svg>`,
     title: "We'll watch for you.",
-    body: "Tell us who covers your home, your state, and roughly what you pay — no bank account needed. We'll watch public rate filings and let you know if your carrier changes rates where you live.",
-    bodyMobile: "Tell us your insurer, state, and rough rate — no bank account needed. We'll flag it if your carrier changes rates where you live.",
+    body: "Some apps scan your bank account to catch duplicate subscriptions. We do the same for insurance — no bank account needed. Tell us who covers your home, your state, and roughly what you pay, and we'll watch public rate filings for changes where you live.",
+    bodyMobile: "Like apps that catch duplicate subscriptions — we do the same for insurance, no bank account needed. Tell us your insurer, state, and rough rate, and we'll flag rate changes near you.",
     cta: 'Good to know →',
     skip: null,
     noArrow: true,
