@@ -98,11 +98,6 @@
       background: var(--yellow); color: var(--navy); font-size: 13px; font-weight: 600;
       padding: 6px 14px; border-radius: 20px; position: relative; cursor: default;
     }
-    .points-badge {
-      position: absolute; top: -6px; right: -6px; background: #e53e3e; color: white;
-      font-size: 10px; font-weight: 600; width: 18px; height: 18px;
-      border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    }
     .nav-link-btn { font-size: 13px; color: var(--navy); text-decoration: none; font-weight: 600; }
     .nav-link-muted { font-size: 13px; color: var(--muted); text-decoration: none; }
     .nav-user { display: flex; align-items: center; gap: 9px; }
@@ -1751,7 +1746,7 @@
     <li><a href="vault/" id="navVault">Documents</a></li>
   </ul>
   <div class="nav-right">
-    <div class="points-pill" id="tutPointsPill" onclick="openCreditsDetail(&quot;earn&quot;)" style="cursor:pointer;" title="See how to earn more">⬡ <span id="navCreditsNum">175</span> Credits<span class="points-badge">+10</span></div>
+    <div class="points-pill" id="tutPointsPill" onclick="openCreditsDetail(&quot;earn&quot;)" style="cursor:pointer;" title="See how to earn more">⬡ <span id="navCreditsNum">175</span> Credits</div>
     <div class="nav-user">
       <div class="nav-avatar" id="navAvatarInitial">J</div>
       <span class="nav-user-name" id="navUserName">Jordan</span>
@@ -2723,11 +2718,9 @@
   // "Review quotes" has a real destination (Marketplace) but no real
   // completion event exists yet anywhere in the product, so it stays a
   // normal clickable row that never shows checked, rather than faking a
-  // done-state (marked `evergreen: true` below so it doesn't stop the nav
-  // badge from ever clearing — see that logic further down). "Complete
-  // plan review" has no real destination at all yet (see
-  // marketplace/index.html's own dev note on this same line item) — shown
-  // as Coming Soon instead of a dead row that looks clickable but isn't.
+  // done-state. "Complete plan review" has no real destination at all yet
+  // (see marketplace/index.html's own dev note on this same line item) —
+  // shown as Coming Soon instead of a dead row that looks clickable but isn't.
   //
   // SKUNKWORKS — two new rows added 2026-09-11, per Alex: "when we click
   // on credits we should have get my financial life set up.. and if they
@@ -2739,6 +2732,20 @@
   // one-time +10 award for each happens in addSavedAccount() below, right
   // at the real transition (no account → first account; no home insurance
   // → first home insurance).
+  //
+  // SKUNKWORKS — the nav pill's red "+10" badge (".points-badge") was
+  // removed entirely 2026-09-11, not patched further. It started as a
+  // hardcoded, never-wired decoration (per Alex: "it shows the plus 10..
+  // but it doesn't add up.. and it shows it complete"); made it show only
+  // when a real row was unclaimed, but Alex still saw it "from the first
+  // screen on" — correctly, since with 6 real (non-soon) rows below, a
+  // brand-new member always has at least one genuinely undone (adding
+  // these two new rows made this worse, not better). A badge meant to
+  // signal "something specific just became available" can't honestly do
+  // that when it's near-guaranteed to be on for every real user at every
+  // point — so it's gone, not re-gated a third time. The real ways-to-earn
+  // list below (and the Credits modal's Earn tab) is still the honest,
+  // always-accurate source for what's actually done vs. open.
   function earnRailRowsConfig() {
     const savedAccounts = getSavedAccounts();
     return [
@@ -2747,7 +2754,7 @@
       { label: 'Set up My Financial Life', pts: '+10', done: savedAccounts.length > 0, dest: "openAccountsScreen()" },
       { label: 'Submit insurance info', pts: '+10', done: !!dashboardProgress.autoInsuranceDone, dest: "goToWorkflow('insurance')" },
       { label: 'Add to Rate Watch', pts: '+10', done: savedAccounts.some(function (a) { return a.category === 'homeinsurance'; }), dest: "openAccountsScreen('homeinsurance')" },
-      { label: 'Review quotes', pts: '+10', done: false, evergreen: true, dest: "window.location.href=aaExternalHref('marketplace/')" },
+      { label: 'Review quotes', pts: '+10', done: false, dest: "window.location.href=aaExternalHref('marketplace/')" },
       { label: 'Beneficiary audit', pts: '+10', done: !!dashboardProgress.beneficiaryAuditDone, dest: "window.location.href=aaExternalHref('vault/')" },
       { label: 'Complete plan review', pts: '+10', soon: true },
     ];
@@ -2775,34 +2782,6 @@
         return '<div class="' + cls + '"' + click + '><span>' + check + r.label + arrow + '</span><span class="vesting-pts">' + r.pts + '</span></div>';
       }).join('');
     }
-    // SKUNKWORKS — real bug found and fixed 2026-09-11, per Alex: "how
-    // come it shows the plus 10 credits in the little red.. but it
-    // doesn't add up in the other place.. and than when i goto credits
-    // header.. it shows it complete?" Root cause: the red ".points-badge"
-    // circle next to the nav credits pill has always just been a
-    // hardcoded "+10" in the HTML, never wired to anything — permanently
-    // visible regardless of real state, implying an unclaimed +10 that
-    // isn't actually there. The real +10 item it was presumably meant to
-    // represent, "Complete your profile," is marked done the moment
-    // onboarding finishes (see earnRailRowsConfig above), which is why
-    // opening the Earn tab shows it already checked off — the badge and
-    // the real earn list were never telling the same story. Every other
-    // earn-related element in this file goes out of its way to never
-    // show a done/pending state that isn't real (see this function's own
-    // 2026-09-08 dev note on "Review quotes"); this badge was the one
-    // exception. Now it only shows when a real, non-"soon" row is
-    // actually still unclaimed, and disappears once nothing real is left
-    // to earn — same rows config the two real lists above already use,
-    // so there's no second source of truth to drift out of sync.
-    // 2026-09-11 follow-up, per Alex — still showing "from the first
-    // screen on" even after the fix above: correct, because "Review
-    // quotes" is `done: false` FOREVER by design (no completion event
-    // exists for it), so the old condition below could never actually go
-    // false. It's excluded here via its new `evergreen: true` flag — an
-    // always-available action isn't the kind of "you still have
-    // something to claim" signal this badge is for.
-    const badge = document.querySelector('#tutPointsPill .points-badge');
-    if (badge) badge.style.display = rows.some(function (r) { return !r.soon && !r.evergreen && !r.done; }) ? 'flex' : 'none';
   }
   // 2026-09-04 — rewritten around the shared session (see shared.js's
   // header note) instead of raw URL params, now that Marketplace is a real,
