@@ -1868,25 +1868,27 @@
           </div>
           <!-- 2026-09-05 — Alex: the old single fill bar "just doesn't
                connect... doesn't know what it means." Replaced with a real
-               4-step tracker. Steps 1-2 are honestly always true by the
-               time anyone lands here (goal was just set during onboarding;
-               advisor session is already booked as part of that same
-               flow — see goToDashboard()). Step 3 is the genuine "you are
-               here." Step 4 is what's still ahead. No invented dollar
-               figures — see the dev note above .goal-card for why. -->
+               4-step tracker. Steps 1-2 used to be hardcoded done — honestly
+               true for every path through onboarding at the time, since
+               advisor-matching was mandatory. SKUNKWORKS, 2026-09-11: no
+               longer true now that the real off-ramp exists (see
+               onboarding-replica's skipAdvisorForNow()) — step 2 ("Advisor
+               matched") now has its own id/logic in updateGoalTrack() below
+               so it reflects session.advisor_skipped honestly instead of
+               always claiming a match that may not exist. Step 3/4 unchanged. -->
           <div class="goal-steps" id="goalSteps">
-            <div class="goal-step-seg done"></div>
-            <div class="goal-step-seg done"></div>
+            <div class="goal-step-seg done" id="goalSeg1"></div>
+            <div class="goal-step-seg done" id="goalSeg2"></div>
             <div class="goal-step-seg current" id="goalSeg3"></div>
             <div class="goal-step-seg" id="goalSeg4"></div>
           </div>
           <div class="goal-step-labels">
-            <div class="goal-step-label-item done">Goal set</div>
-            <div class="goal-step-label-item done">Advisor matched</div>
+            <div class="goal-step-label-item done" id="goalLabel1">Goal set</div>
+            <div class="goal-step-label-item done" id="goalLabel2">Advisor matched</div>
             <div class="goal-step-label-item current" id="goalLabel3">Build your plan</div>
             <div class="goal-step-label-item" id="goalLabel4">Take action</div>
           </div>
-          <div class="goal-track-callout" onclick="document.getElementById('nudgeTodo').scrollIntoView({behavior:'smooth', block:'center'})">
+          <div class="goal-track-callout" id="goalTrackCallout" onclick="document.getElementById('nudgeTodo').scrollIntoView({behavior:'smooth', block:'center'})">
             <b>Get on track →</b> <span id="goalNextStep">Your next step is right below.</span>
           </div>
 
@@ -1932,6 +1934,27 @@
         </div>
       </div>
     </div>
+
+  <!-- SKUNKWORKS — real off-ramp, 2026-09-11, per Alex: "we want it to
+       take them to the workflow that says, thats ok, if you aren't ready
+       for a financial plan yet.. and take them through the tutorial."
+       Hidden by default — applyPersonalization() only reveals this when
+       session.advisor_skipped is real, right after the hero and before
+       the advisor-centric "To Do" nudge below, so someone who explicitly
+       said they weren't ready sees a real, honest gateway to what's
+       available without an advisor (Marketplace, Rate Watch, My
+       Financial Life) as the first thing after the hero, instead of a
+       nudge card built around an advisor-driven flow. -->
+  <div class="egs-card" id="exploreOnYourOwnCard" style="display:none; text-align:center;">
+    <div style="font-size:11px; font-weight:700; color:var(--yellow-dark); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">🔍 Explore On Your Own</div>
+    <div style="font-size:15px; font-weight:700; color:var(--text); margin-bottom:6px;">No advisor yet? Here's what's already yours.</div>
+    <div style="font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:16px; max-width:480px; margin-left:auto; margin-right:auto;">You don't need a matched advisor to start earning credits, tracking your accounts, or watching for insurance rate changes — all of it's ready whenever you are.</div>
+    <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+      <button class="btn-run-quotes" style="width:auto; padding:10px 18px;" onclick="document.getElementById('tutExchangeTeaser').scrollIntoView({behavior:'smooth', block:'center'})">Explore the Marketplace →</button>
+      <button class="rate-watch-cta ghost" style="width:auto;" onclick="document.getElementById('rateWatchAlert').scrollIntoView({behavior:'smooth', block:'center'})">See Rate Watch →</button>
+      <button class="rate-watch-cta ghost" style="width:auto;" onclick="document.getElementById('accountsShelf').scrollIntoView({behavior:'smooth', block:'center'})">My Financial Life →</button>
+    </div>
+  </div>
 
   <!-- ── TO DO / NEXT STEPS — 2026-09-03: pulled back OUT of the goal
        card into its own section right after it. Alex, after seeing the
@@ -2518,9 +2541,18 @@
   </div>
 
   <!-- ── YOUR ADVISOR ── -->
+  <!-- SKUNKWORKS — real off-ramp, 2026-09-11: #advisorCardBody's default
+       content below assumes a real match happened, same as the rest of
+       this dashboard did before the off-ramp existed. When
+       session.advisor_skipped is true, applyPersonalization() replaces
+       this entire innerHTML with an honest "not matched yet" prompt
+       instead — patching individual fields (name/stats/buttons) wasn't
+       enough, since almost everything here has no honest value to show
+       for someone who explicitly said they weren't ready. See that
+       branch for the replacement markup. -->
   <div style="margin-bottom: 40px;">
     <div class="activity-title">Your Advisor</div>
-    <div class="advisor-card">
+    <div class="advisor-card" id="advisorCardBody">
       <div class="advisor-card-header">
         <div class="advisor-avatar">👤</div>
         <div style="flex:1;">
@@ -2799,13 +2831,45 @@
   // (returnToDashboardChecklist) — one function, always correct, instead of
   // the tracker silently drifting out of sync with what the session knows.
   function updateGoalTrack(goal) {
+    const session = aaLoadSession();
+    const seg2 = document.getElementById('goalSeg2');
+    const label2 = document.getElementById('goalLabel2');
+    const callout = document.getElementById('goalTrackCallout');
     const engaged = dashboardProgress.autoInsuranceDone || dashboardProgress.estatePlanningDone;
     const seg3 = document.getElementById('goalSeg3');
     const seg4 = document.getElementById('goalSeg4');
     const label3 = document.getElementById('goalLabel3');
     const label4 = document.getElementById('goalLabel4');
     const nextStep = document.getElementById('goalNextStep');
-    if (!seg3 || !seg4 || !label3 || !label4 || !nextStep) return;
+    if (!seg2 || !label2 || !callout || !seg3 || !seg4 || !label3 || !label4 || !nextStep) return;
+
+    // SKUNKWORKS — real off-ramp, 2026-09-11: step 2 ("Advisor matched")
+    // used to be hardcoded done in the HTML for everyone — honestly true
+    // for every path through onboarding before this feature existed, since
+    // advisor-matching was mandatory (see onboarding-replica's
+    // skipAdvisorForNow()). Steps 3/4 can't honestly be "building a
+    // plan"/"ahead" without an advisor relationship yet, so this branch
+    // takes over the whole tracker + callout rather than layering onto the
+    // engaged/not-engaged logic below, which assumes one already exists.
+    if (session.advisor_skipped) {
+      seg2.classList.remove('done'); seg2.classList.add('current');
+      seg3.classList.remove('done', 'current');
+      seg4.classList.remove('current');
+      label2.classList.remove('done'); label2.classList.add('current');
+      label2.textContent = 'Get matched';
+      label3.classList.remove('done', 'current');
+      label4.classList.remove('current');
+      const calloutLabel = callout.querySelector('b');
+      if (calloutLabel) calloutLabel.textContent = 'Explore on your own →';
+      nextStep.textContent = "Whenever you're ready, we'll connect you with an advisor — until then, explore what's already available below.";
+      callout.onclick = function () {
+        const el = document.getElementById('tutExchangeTeaser');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      };
+      renderGoalChecklistStrip();
+      renderActivityFeed();
+      return;
+    }
 
     seg3.classList.toggle('done', engaged);
     seg3.classList.toggle('current', !engaged);
@@ -2846,7 +2910,11 @@
     if (session.estateRenewalDone) rows.push({ icon: '🏛', cls: 'redeem', title: 'MyGoodTrust — Year 2 renewal', sub: 'Will & trust renewed', pts: '-39', ptsCls: 'spend' });
     if (session.estatePlanningDone) rows.push({ icon: '🏛', cls: 'redeem', title: 'MyGoodTrust — Will & Trust Setup', sub: 'Documents started', pts: '-139', ptsCls: 'spend' });
     if (session.autoInsuranceDone) rows.push({ icon: '🚗', cls: 'earn', title: 'The Zebra — auto insurance info submitted', sub: 'Real quote requested', pts: '+10', ptsCls: 'earn' });
-    rows.push({ icon: '🤝', cls: 'earn', title: 'Matched with your advisor', sub: 'Advisor matched during onboarding', pts: '', ptsCls: '' });
+    // SKUNKWORKS — real off-ramp, 2026-09-11: this row used to be
+    // unconditional — honest for every path through onboarding before the
+    // off-ramp existed. Now gated on the real session.advisor_skipped flag
+    // instead of claiming a match that may not have happened.
+    if (!session.advisor_skipped) rows.push({ icon: '🤝', cls: 'earn', title: 'Matched with your advisor', sub: 'Advisor matched during onboarding', pts: '', ptsCls: '' });
     rows.push({ icon: '🎉', cls: 'earn', title: 'Welcome bonus', sub: 'Account created', pts: '+25', ptsCls: 'earn' });
 
     let teaser;
@@ -2882,6 +2950,7 @@
   function renderGoalChecklistStrip() {
     const el = document.getElementById('goalChecklistStrip');
     if (!el) return;
+    const session = aaLoadSession();
     // 2026-09-05, per Alex: "how come we don't have life insurance??" —
     // added as its own row, same honest always-pending treatment as Tax
     // prep (no real purchase-completion flow exists yet to mark it done —
@@ -2889,8 +2958,11 @@
     // Also carries the hover tooltip he asked for, real stats sourced from
     // LIMRA's 2026 Insurance Barometer Study rather than invented — see the
     // tooltip's own content below for the citations.
+    // SKUNKWORKS — real off-ramp, 2026-09-11: "Financial advice" used to be
+    // hardcoded done — honest before the off-ramp existed, since
+    // advisor-matching was mandatory. Now reflects session.advisor_skipped.
     const items = [
-      { label: 'Financial advice', done: true, doneSub: 'Advisor matched', pendingSub: '', key: 'advice' },
+      { label: 'Financial advice', done: !session.advisor_skipped, doneSub: 'Advisor matched', pendingSub: 'Not matched yet', key: 'advice' },
       { label: 'Car insurance', done: dashboardProgress.autoInsuranceDone, doneSub: 'Details submitted', pendingSub: 'Your next step', key: 'insurance' },
       { label: 'Life insurance', done: false, doneSub: '', pendingSub: 'Not started', key: 'life',
         tooltip: "Now's a good time — the younger and healthier you are, the cheaper it locks in. Most people underestimate the real cost by 7–12x. Nearly 100 million Americans have little or no coverage. Get a real quote from our partners, 100% online, in minutes." },
@@ -2933,50 +3005,74 @@
     document.getElementById('goalIcon').textContent = goal.icon;
     document.getElementById('goalName').textContent = goal.name;
     updateGoalTrack(goal);
+    // SKUNKWORKS — real off-ramp, 2026-09-11: only ever shown when the
+    // real session flag is set — see the card's own dev note above for why.
+    const exploreCard = document.getElementById('exploreOnYourOwnCard');
+    if (exploreCard) exploreCard.style.display = session.advisor_skipped ? 'block' : 'none';
 
     aaPaintNav(session);
     document.getElementById('dashWelcomeName').textContent = session.name + '.';
     const cpName = document.getElementById('cpNameSpan'); if (cpName) cpName.textContent = session.name;
 
-    // 2026-09-08 — real bug: this card was hardcoded to "Sarah Mitchell,
-    // CFP®" for every visitor. Now reflects the real advisor onboarding
-    // actually matched them with (forwarded via goToDashboard(), see
-    // shared.js's aaResolveSession() for the fallback when there's no
-    // real handoff at all).
-    const advisorNameEl = document.getElementById('advisorNameSpan');
-    if (advisorNameEl && session.advisor_name) {
-      advisorNameEl.textContent = session.advisor_name + (session.advisor_creds ? ', ' + session.advisor_creds : '');
+    // SKUNKWORKS — real off-ramp, 2026-09-11: everything below this point
+    // (name, title, stats, buttons) assumes a real advisor match — honest
+    // for every path through this dashboard until the off-ramp existed.
+    // When session.advisor_skipped is true, none of those individual
+    // fields have an honest value to show, so the whole card body is
+    // replaced with an explicit "not matched yet" prompt instead of
+    // patching pieces of a card built for the opposite case.
+    const advisorCardBody = document.getElementById('advisorCardBody');
+    if (session.advisor_skipped) {
+      if (advisorCardBody) {
+        advisorCardBody.innerHTML =
+          '<div style="text-align:center; padding:20px 10px;">' +
+            '<div style="font-size:32px; margin-bottom:10px;">🤝</div>' +
+            '<div style="font-size:15px; font-weight:700; color:var(--navy); margin-bottom:6px;">Want a plan built for you?</div>' +
+            '<div style="font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:16px; max-width:360px; margin-left:auto; margin-right:auto;">You told us you\'re not ready for a full financial plan yet — that\'s completely fine. Whenever you are, we\'ll match you with a real fiduciary advisor, at no cost to you.</div>' +
+            '<button class="btn-book" style="width:auto; padding:10px 24px;" onclick="window.location.href=aaExternalHref(\'../onboarding-replica/\')">Match with an advisor →</button>' +
+          '</div>';
+      }
+    } else {
+      // 2026-09-08 — real bug: this card was hardcoded to "Sarah Mitchell,
+      // CFP®" for every visitor. Now reflects the real advisor onboarding
+      // actually matched them with (forwarded via goToDashboard(), see
+      // shared.js's aaResolveSession() for the fallback when there's no
+      // real handoff at all).
+      const advisorNameEl = document.getElementById('advisorNameSpan');
+      if (advisorNameEl && session.advisor_name) {
+        advisorNameEl.textContent = session.advisor_name + (session.advisor_creds ? ', ' + session.advisor_creds : '');
+      }
+      // 2026-09-09 — real bug fix (see dev note on #advisorSessionsCount's
+      // HTML): "Sessions completed" and "Client since" were hardcoded fake
+      // numbers ("4", "Feb 2026") shown for every visitor regardless of
+      // whether they'd ever actually met with anyone. Computed from the same
+      // real session.meeting_date, forwarded from onboarding's goToDashboard()
+      // (see that function's own dev note). Kept when the separate left-rail
+      // "Your Advisor" card was pulled back out for being too much on the
+      // screen (2026-09-09) — this fix is independent of that: it's this
+      // card's OWN stats, not a duplicate.
+      const nextSessionEl = document.getElementById('advisorNextSession');
+      const sessionsCountEl = document.getElementById('advisorSessionsCount');
+      const clientSinceEl = document.getElementById('advisorClientSince');
+      let sessionsCompleted = 0;
+      if (session.meeting_date) {
+        const meetingD = new Date(session.meeting_date + 'T00:00:00');
+        const isPast = meetingD < new Date(new Date().toDateString());
+        const dateLabel = meetingD.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        if (nextSessionEl) nextSessionEl.textContent = isPast ? 'Completed ' + dateLabel : dateLabel + (session.meeting_time ? ' · ' + session.meeting_time : '');
+        // This prototype only tracks the single real booked meeting, not a
+        // full session history — 0 or 1 is the honest ceiling, not an
+        // invented running count.
+        if (isPast) sessionsCompleted = 1;
+      }
+      if (sessionsCountEl) sessionsCountEl.textContent = sessionsCompleted;
+      // "Client since" = the real date this match actually happened. No
+      // persisted match-date field exists in this prototype's session, and
+      // every real handoff from onboarding represents a match made THIS
+      // session — so today's real date is the honest value, not a
+      // fabricated past month.
+      if (clientSinceEl) clientSinceEl.textContent = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     }
-    // 2026-09-09 — real bug fix (see dev note on #advisorSessionsCount's
-    // HTML): "Sessions completed" and "Client since" were hardcoded fake
-    // numbers ("4", "Feb 2026") shown for every visitor regardless of
-    // whether they'd ever actually met with anyone. Computed from the same
-    // real session.meeting_date, forwarded from onboarding's goToDashboard()
-    // (see that function's own dev note). Kept when the separate left-rail
-    // "Your Advisor" card was pulled back out for being too much on the
-    // screen (2026-09-09) — this fix is independent of that: it's this
-    // card's OWN stats, not a duplicate.
-    const nextSessionEl = document.getElementById('advisorNextSession');
-    const sessionsCountEl = document.getElementById('advisorSessionsCount');
-    const clientSinceEl = document.getElementById('advisorClientSince');
-    let sessionsCompleted = 0;
-    if (session.meeting_date) {
-      const meetingD = new Date(session.meeting_date + 'T00:00:00');
-      const isPast = meetingD < new Date(new Date().toDateString());
-      const dateLabel = meetingD.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      if (nextSessionEl) nextSessionEl.textContent = isPast ? 'Completed ' + dateLabel : dateLabel + (session.meeting_time ? ' · ' + session.meeting_time : '');
-      // This prototype only tracks the single real booked meeting, not a
-      // full session history — 0 or 1 is the honest ceiling, not an
-      // invented running count.
-      if (isPast) sessionsCompleted = 1;
-    }
-    if (sessionsCountEl) sessionsCountEl.textContent = sessionsCompleted;
-    // "Client since" = the real date this match actually happened. No
-    // persisted match-date field exists in this prototype's session, and
-    // every real handoff from onboarding represents a match made THIS
-    // session — so today's real date is the honest value, not a
-    // fabricated past month.
-    if (clientSinceEl) clientSinceEl.textContent = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
     setLiveCredits(session.credits);
 
@@ -4028,6 +4124,11 @@
         window.location.href=aaExternalHref('marketplace/?dept=tax');
         return;
       case 'advice':
+        // SKUNKWORKS — real off-ramp, 2026-09-11: this used to be a single
+        // hardcoded message — honest for every path through onboarding
+        // before the off-ramp existed. Now reflects real state instead of
+        // telling someone who explicitly skipped that they're matched.
+        if (aaLoadSession().advisor_skipped) { showToast("Not matched yet — see the Your Advisor card below whenever you're ready"); return; }
         showToast("You're matched — see your advisor in the panel on the right");
         return;
     }
@@ -4270,6 +4371,15 @@
       title: 'Welcome to AssetAlign!',
       body: 'Your advisor has your info and the time is booked — your future self will thank you. Your employer made this possible, and a comprehensive wealth plan is waiting at no cost to you. This is your hub — let\'s take a quick look around.',
       bodyMobile: 'Your advisor is booked and your plan is ready — at no cost to you. This is your hub. Let\'s take a quick look around.',
+      // SKUNKWORKS — real off-ramp, 2026-09-11: the default body above
+      // assumes a booked advisor session, which isn't honest for someone
+      // who took the off-ramp (see onboarding-replica's
+      // skipAdvisorForNow()). showTutStep() below swaps in these two
+      // whenever session.advisor_skipped is true — same opt-in pattern as
+      // step.cardAccent elsewhere in this file, so every other step is
+      // untouched.
+      bodyAdvisorSkipped: 'You told us you\'re not ready for a full plan yet — no problem. It\'s here whenever you want it, at no cost through your employer. In the meantime, this is your hub for everything else: credits, insurance rate tracking, and more. Let\'s take a quick look around.',
+      bodyMobileAdvisorSkipped: 'Not ready for a full plan yet? No problem — it\'s here whenever you want it, at no cost. This is your hub for everything else. Let\'s take a look around.',
       cta: 'Show me around →',
       skip: 'Skip tour',
       // 2026-09-03 — the target here is the whole credits-hero card (the
@@ -4286,6 +4396,9 @@
       icon: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><polyline points="4,20 10,13 15,16 22,8" stroke="#0D3B66" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="18,8 22,8 22,12" stroke="#0D3B66" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="4" y1="22" x2="24" y2="22" stroke="#F4D35E" stroke-width="2" stroke-linecap="round"/></svg>`,
       title: 'Your goal, tracked in real time.',
       body: 'Every action you take moves this bar. Your advisor, your plan, your credits — all working toward the goal you set during onboarding.',
+      // SKUNKWORKS — real off-ramp, 2026-09-11: same reasoning as
+      // tutCredits' bodyAdvisorSkipped above.
+      bodyAdvisorSkipped: 'Every action you take moves this bar — your credits, your Marketplace activity, all working toward the goal you set during onboarding. Match with an advisor anytime to build a full plan around it.',
       cta: 'What\'s next →',
       skip: null,
       // 2026-09-03 — measured live: only a 10px vertical / 66px horizontal
@@ -4593,7 +4706,16 @@
     // 2026-09-08, per Alex: shorten box content on mobile so it isn't
     // crowded on a small screen — an optional per-step bodyMobile falls
     // back to the normal (desktop) body when a step doesn't need it.
-    document.getElementById('tutBody').textContent  = (tutIsMobile && step.bodyMobile) ? step.bodyMobile : step.body;
+    // SKUNKWORKS — real off-ramp, 2026-09-11: a couple of steps
+    // (tutCredits/tutGoal) assume a booked advisor by default, which isn't
+    // honest for someone who took the off-ramp — bodyAdvisorSkipped/
+    // bodyMobileAdvisorSkipped are optional per-step overrides used only
+    // when session.advisor_skipped is true, same opt-in shape as
+    // step.cardAccent above so every other step is unaffected.
+    const advisorSkipped = !!aaLoadSession().advisor_skipped;
+    const stepBody = (advisorSkipped && step.bodyAdvisorSkipped) ? step.bodyAdvisorSkipped : step.body;
+    const stepBodyMobile = (advisorSkipped && step.bodyMobileAdvisorSkipped) ? step.bodyMobileAdvisorSkipped : step.bodyMobile;
+    document.getElementById('tutBody').textContent  = (tutIsMobile && stepBodyMobile) ? stepBodyMobile : stepBody;
     document.getElementById('tutCta').textContent   = step.cta;
 
     const skipBtn = document.getElementById('tutSkip');
