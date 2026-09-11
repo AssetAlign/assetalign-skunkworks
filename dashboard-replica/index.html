@@ -1761,6 +1761,25 @@
   <button class="accounts-shelf-viewall" onclick="openAccountsScreen()">View All →</button>
 </div>
 
+<!-- ══════════════════════════════════════════════════════════════════
+     SKUNKWORKS — Insurance Rate Watch integration test, not in the real
+     product. Illustrative only: this always shows, rather than actually
+     checking whether the member added Allstate as their Home Insurance
+     tile above. A real version would only render when there's a live
+     match between a My Financial Life "Home Insurance" entry and a
+     recent Rate Watch finding for that carrier + the member's state.
+     The number and state below are real, sourced findings from the
+     Rate Watch research (Allstate Vehicle & Property, Texas, +8%,
+     effective renewals Mar 12 2026) — not invented for this mockup.
+     ══════════════════════════════════════════════════════════════════ -->
+<div class="nudge-card" id="rateWatchCard" style="margin-top:16px;">
+  <div class="nudge-eyebrow">🏠 Insurance Rate Watch</div>
+  <div class="nudge-title">Allstate recently changed home insurance rates in Texas.</div>
+  <div class="nudge-body">Since Allstate is the home insurer you've got listed in My Financial Life, this may be a good time to check whether your coverage is still competitively priced. We can't tell you your exact new rate — only your carrier can — but a quick comparison takes a few minutes.</div>
+  <button class="btn-nudge-yes" style="width:100%; margin-bottom:8px;" onclick="window.location.href=aaExternalHref('marketplace/?dept=insurance')">See if The Zebra can find a better rate →</button>
+  <button class="btn-nudge-no" style="width:100%; text-align:center; display:block;">Not now</button>
+</div>
+
 <!-- ── MY FINANCIAL ACCOUNTS SCREEN — reuses the disclosure modal's own
      overlay/box/header/footer classes (same approach #creditsDetailModal
      already uses), just wider (.accscreen-box) since it holds every
@@ -3183,6 +3202,19 @@
       { name: 'Progressive', domain: 'progressive.com' }, { name: 'Allstate', domain: 'allstate.com' },
       { name: 'USAA', domain: 'usaa.com' }, { name: 'Liberty Mutual', domain: 'libertymutual.com' },
       { name: 'Farmers', domain: 'farmers.com' }, { name: 'Nationwide', domain: 'nationwide.com' },
+      { name: 'The Zebra', domain: 'thezebra.com' },
+    ] },
+    // SKUNKWORKS — Insurance Rate Watch integration test, not in the real
+    // product yet. This is the one gap identified during that research:
+    // My Financial Life had no home-insurance category at all, only Car
+    // Insurance, so there was nowhere for a member to self-report who
+    // insures their home — the exact signal the Rate Watch matching step
+    // needs. Same shape as every other category above.
+    { key: 'homeinsurance', label: 'Home Insurance', tileLabel: 'My Home Insurance', icon: '🏠', items: [
+      { name: 'State Farm', domain: 'statefarm.com' }, { name: 'Allstate', domain: 'allstate.com' },
+      { name: 'Travelers', domain: 'travelers.com' }, { name: 'Liberty Mutual', domain: 'libertymutual.com' },
+      { name: 'USAA', domain: 'usaa.com' }, { name: 'Farmers', domain: 'farmers.com' },
+      { name: 'Nationwide', domain: 'nationwide.com' }, { name: 'Chubb', domain: 'chubb.com' },
       { name: 'The Zebra', domain: 'thezebra.com' },
     ] },
     { key: 'creditcard', label: 'Credit Cards', tileLabel: 'My Credit Card', icon: '💳', items: [
