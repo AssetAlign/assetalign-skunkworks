@@ -1563,6 +1563,19 @@
     .decision-banner-left { display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 700; color: var(--yellow); }
     .decision-banner-right { font-size: 12px; color: rgba(255,255,255,0.4); font-style: italic; }
 
+    /* SKUNKWORKS — Insurance Rate Watch alert. White/gold, not navy, so it
+       reads as its own distinct thing sitting between two navy elements
+       (.decision-banner above, .credits-hero below) rather than looking
+       like part of either one. */
+    .rate-watch-alert { display: flex; align-items: center; gap: 14px; background: var(--white); border: 1.5px solid var(--yellow-dark); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; }
+    .rate-watch-alert-icon { font-size: 22px; flex-shrink: 0; }
+    .rate-watch-alert-body { flex: 1; min-width: 0; }
+    .rate-watch-alert-title { font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+    .rate-watch-alert-sub { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .rate-watch-alert-cta { flex-shrink: 0; background: var(--navy); color: var(--white); border: none; border-radius: 8px; padding: 9px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap; }
+    .rate-watch-alert-cta:hover { background: var(--navy-mid); }
+    @media (max-width: 700px) { .rate-watch-alert { flex-wrap: wrap; } .rate-watch-alert-cta { width: 100%; } }
+
     /* ── NUDGE — 2026-09-03, two rounds. Round 1: moved out of the separate
          white sidebar into the goal card itself (it "felt like the
          tutorial" as its own hand-off box). Round 2, right after seeing
@@ -1793,6 +1806,12 @@
     </div>
     <div class="decision-banner-right">Every credit you earn is a dollar saved on your next financial move</div>
   </div>
+
+  <!-- SKUNKWORKS — Insurance Rate Watch alert. Sits here, between the
+       decision banner and the credits hero, on purpose — not inside
+       either one. Empty/hidden until renderRateWatchAlert() finds a real
+       match against a saved Home Insurance account; see that function. -->
+  <div id="rateWatchAlert" style="display:none;"></div>
 
   <!-- ── HERO + NUDGE ROW ── -->
     <!-- Goal hero -->
@@ -3144,6 +3163,54 @@
   // pulled from Google's public favicon service (no key needed, works for
   // any real domain) rather than hosting bank logos ourselves. Session-
   // scoped (sessionStorage) to match every other piece of state here.
+  // ═══════════════════════════════════════════════════════════════════
+  // SKUNKWORKS — Insurance Rate Watch findings. Every entry here is a real,
+  // sourced finding from the actual research pass (2026-09-11) — nothing
+  // invented for this demo. In production this table gets populated by the
+  // quarterly public-filing scan described in that research, not hardcoded.
+  // ═══════════════════════════════════════════════════════════════════
+  const RATE_WATCH_FINDINGS = [
+    { carrierMatch: /allstate/i, state: 'TX', product: 'Homeowners', pct: '+8%', effective: 'renewals March 2026', source: 'trade press, via Insurify' },
+    { carrierMatch: /farmers/i, state: 'TX', product: 'Homeowners', pct: '+22.7%', effective: 'Q1 2026 filing', source: 'trade press, via Insurify' },
+    { carrierMatch: /state farm/i, state: 'LA', product: 'Homeowners', pct: '+9.7%', effective: 'renewals Dec 15, 2026', source: 'Insurance Journal' },
+    { carrierMatch: /citizens/i, state: 'FL', product: 'Homeowners', pct: '8.7% decrease', effective: 'Spring 2026 renewals', source: 'Insurance Journal', isDecrease: true },
+  ];
+
+  function findRateWatchMatch() {
+    const accounts = getSavedAccounts().filter(function (a) { return a.category === 'homeinsurance'; });
+    for (const acct of accounts) {
+      const state = (acct.state || aaLoadSession().state || '').toUpperCase();
+      const finding = RATE_WATCH_FINDINGS.find(function (f) { return f.carrierMatch.test(acct.name) && f.state === state; });
+      if (finding) return { account: acct, finding: finding };
+    }
+    return null;
+  }
+
+  // Lives between .decision-banner and .credits-hero — deliberately its own
+  // element, not folded into either, per Alex 2026-09-11: "without
+  // expanding the blue box we want to have it live above the Your goal
+  // whole thing." Renders nothing at all when there's no real match — this
+  // replaces the earlier version of this feature that showed a fabricated
+  // match unconditionally, which was wrong and already corrected once.
+  function renderRateWatchAlert() {
+    const container = document.getElementById('rateWatchAlert');
+    if (!container) return;
+    const match = findRateWatchMatch();
+    if (!match) { container.innerHTML = ''; container.style.display = 'none'; return; }
+    const f = match.finding;
+    const verb = f.isDecrease ? 'may have gone down' : 'recently changed';
+    container.style.display = 'block';
+    container.innerHTML =
+      '<div class="rate-watch-alert">' +
+        '<div class="rate-watch-alert-icon">🏠</div>' +
+        '<div class="rate-watch-alert-body">' +
+          '<div class="rate-watch-alert-title">Insurance Rate Watch — ' + match.account.name + ' rates ' + verb + ' in ' + f.state + '</div>' +
+          '<div class="rate-watch-alert-sub">' + match.account.name + ' filed a ' + f.pct + ' homeowners rate change, effective ' + f.effective + ' (' + f.source + '). This may be a good time to check your own coverage.</div>' +
+        '</div>' +
+        '<button class="rate-watch-alert-cta" onclick="window.location.href=aaExternalHref(\'marketplace/?dept=insurance\')">Review →</button>' +
+      '</div>';
+  }
+
   const ACCOUNT_CATEGORIES = [
     { key: 'bank', label: 'Banks', tileLabel: 'My Bank', icon: '🏦', items: [
       { name: 'Chase', domain: 'chase.com' }, { name: 'Bank of America', domain: 'bankofamerica.com' },
@@ -3361,19 +3428,23 @@
     setSavedAccounts(accounts);
     renderAccountsShelf();
   }
-  function addSavedAccount(category, name, rawUrl) {
+  function addSavedAccount(category, name, rawUrl, extra) {
     const normalized = rawUrl ? normalizeAccountUrl(rawUrl) : null;
     const domain = normalized ? domainFromAccountUrl(normalized) : null;
     const accounts = getSavedAccounts();
-    accounts.push({
+    accounts.push(Object.assign({
       id: Date.now() + '_' + Math.random().toString(36).slice(2),
       category: category,
       name: (name || '').trim() || domain || 'Account',
       url: normalized,
       favicon: domain ? accountFaviconUrl(domain) : null,
-    });
+    }, extra || {}));
     setSavedAccounts(accounts);
     renderAccountsShelf();
+    // SKUNKWORKS — Insurance Rate Watch: re-check for a match every time an
+    // account is saved, not just on page load, so adding a Home Insurance
+    // tile can surface the alert immediately without a refresh.
+    if (typeof renderRateWatchAlert === 'function') renderRateWatchAlert();
   }
   function toggleCategoryNA(key, checked) {
     const map = getAccountNAMap();
@@ -3438,6 +3509,11 @@
     resultsEl.classList.add('show');
   }
   function addAccountFromCategory(key, name, domain) {
+    // SKUNKWORKS — Insurance Rate Watch: Home Insurance is the one category
+    // that needs two extra questions (state + roughly what they pay) before
+    // saving, since that's the real signal Rate Watch matches against. Every
+    // other category keeps the original one-click save.
+    if (key === 'homeinsurance') { promptHomeInsuranceDetails(name, 'https://www.' + domain); return; }
     addSavedAccount(key, name, 'https://www.' + domain);
     renderAccountsScreenBody();
   }
@@ -3465,7 +3541,40 @@
     const name = nameInput ? nameInput.value.trim() : '';
     const url = urlInput ? urlInput.value.trim() : '';
     if (!name) { showToast('Enter a name first.'); return; }
+    if (key === 'homeinsurance') { promptHomeInsuranceDetails(name, url || null); return; }
     addSavedAccount(key, name, url || null);
+    renderAccountsScreenBody();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // SKUNKWORKS — Insurance Rate Watch: Home Insurance intake.
+  // Same inline-reveal pattern already used by revealCustomAccountForm
+  // above, not a new modal — state comes pre-filled from the member's own
+  // profile (already captured during onboarding, session.state) rather
+  // than asked again from scratch, matching this product's existing
+  // "we already have your info, just confirm" pattern (see onboarding S2).
+  // Estimated rate is the one genuinely new question, and it's explicitly
+  // optional and explicitly an estimate — this is self-reported, not a
+  // verified figure, and the UI should never imply otherwise.
+  // ═══════════════════════════════════════════════════════════════════
+  function promptHomeInsuranceDetails(name, url) {
+    const resultsEl = document.getElementById('accscreenResults_homeinsurance');
+    if (!resultsEl) return;
+    const knownState = (aaLoadSession().state || '').trim();
+    resultsEl.innerHTML = '<div class="accscreen-custom-form">' +
+      '<div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Adding ' + name.replace(/"/g, '&quot;') + '</div>' +
+      '<input type="text" class="accscreen-search-input" id="hiState" placeholder="State" value="' + knownState.replace(/"/g, '&quot;') + '" maxlength="2" style="text-transform:uppercase;">' +
+      '<input type="text" class="accscreen-search-input" id="hiEstRate" placeholder="Roughly what do you pay a year? (optional)" style="margin-top:6px;">' +
+      '<div style="font-size:11px;color:var(--muted);margin-top:4px;">This is just your own estimate — we\'ll never treat it as your actual policy figure.</div>' +
+      '<button type="button" class="btn-run-quotes" style="width:100%;margin-top:8px;" onclick="finalizeHomeInsuranceAccount(' + JSON.stringify(name) + ', ' + JSON.stringify(url) + ')">Save →</button>' +
+      '</div>';
+  }
+  function finalizeHomeInsuranceAccount(name, url) {
+    const stateInput = document.getElementById('hiState');
+    const rateInput = document.getElementById('hiEstRate');
+    const state = stateInput ? stateInput.value.trim().toUpperCase() : '';
+    const estRate = rateInput ? rateInput.value.trim() : '';
+    addSavedAccount('homeinsurance', name, url, { state: state || null, estRate: estRate || null });
     renderAccountsScreenBody();
   }
   // 2026-09-06 — now takes an optional category key so a tile click jumps
@@ -3510,6 +3619,7 @@
     });
   })();
   renderAccountsShelf();
+  renderRateWatchAlert(); // SKUNKWORKS — Insurance Rate Watch, see its own function above
 
   // ── NUDGE ──
   // 2026-09-03 — Alex: the insurance pitch used to be shown immediately,
