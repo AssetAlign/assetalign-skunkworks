@@ -1557,11 +1557,16 @@
 
     /* SKUNKWORKS — Insurance Rate Watch box. 2026-09-11, third placement:
        now its own full-width section inside .dash-tile-columns (see the
-       HTML/nth-child(7) CSS below) — a plain white card matching
-       .egs-card/.passport-preview, since this sits on the page's light
-       background again, not navy. The gold eyebrow is the one thing
-       carried over from the earlier in-hero attempt for brand identity. */
-    .rate-watch-box { background: var(--white); border: 1.5px solid var(--border); border-radius: 16px; padding: 20px 22px; margin-bottom: 20px; }
+       HTML/nth-child(7) CSS below). Per Alex, a plain white card here
+       "blends in" against the page's light background — the same
+       .egs-card/.passport-preview treatment reads fine for neutral
+       utility cards, but this one is meant to register as a named
+       feature. Given a warm gold-tinted background (--yellow-bg, already
+       used elsewhere for gold-adjacent hover states) and a matching
+       --yellow-dark border instead of the generic gray one, so it holds
+       its own next to the plain white cards around it without needing a
+       heavy shadow or a loud saturated fill. */
+    .rate-watch-box { background: var(--yellow-bg); border: 1.5px solid var(--yellow-dark); border-radius: 16px; padding: 20px 22px; margin-bottom: 20px; }
     .rate-watch-eyebrow { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--yellow-dark); margin-bottom: 8px; }
     .rate-watch-row { display: flex; align-items: center; gap: 14px; }
     .rate-watch-icon { font-size: 22px; flex-shrink: 0; }
@@ -1782,7 +1787,17 @@
   <div class="accounts-shelf-title">Every account, one place.</div>
   <div class="accounts-shelf-sub">You don't have to keep track of every site yourself — add them here whenever, and we'll remember for you. Tap a linked tile to go straight there.</div>
   <div class="accounts-tile-grid" id="accountsShelfList"></div>
-  <button class="accounts-shelf-addpartner" onclick="window.location.href=aaExternalHref('marketplace/')">
+  <!-- SKUNKWORKS — real bug found and fixed 2026-09-11, per Alex: "when i
+       am clicking on add one of my providers its taking me to the
+       marketplace?" This button's own label says "add one of YOUR
+       providers" (record an account you already have), but its onclick
+       sent you to the Marketplace instead — that's AssetAlign's actual
+       partner network (sign up with a NEW partner), a completely
+       different action, and not what the label promises. Pre-existing,
+       not something this session's Rate Watch work introduced. Now opens
+       the same self-report search/add modal the category tiles and
+       "View All" already use. -->
+  <button class="accounts-shelf-addpartner" onclick="openAccountsScreen()">
     <span class="accounts-shelf-addpartner-plus">+</span> Add one of your providers
   </button>
   <button class="accounts-shelf-viewall" onclick="openAccountsScreen()">View All →</button>
@@ -4390,8 +4405,8 @@
     eyebrow: '🏠 Rate Watch',
     icon: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="7" stroke="#0D3B66" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="#F4D35E" stroke-width="2"/><line x1="17" y1="17" x2="24" y2="24" stroke="#0D3B66" stroke-width="2" stroke-linecap="round"/></svg>`,
     title: "We'll watch for you.",
-    body: "Some apps scan your bank account to catch duplicate subscriptions. We do the same for insurance — no bank account needed. Tell us who covers your home, your state, and roughly what you pay, and we'll watch public rate filings for changes where you live.",
-    bodyMobile: "Like apps that catch duplicate subscriptions — we do the same for insurance, no bank account needed. Tell us your insurer, state, and rough rate, and we'll flag rate changes near you.",
+    body: "Some apps quietly watch your bank account to flag an old subscription still draining your money. We watch something different for insurance: not your bank account, but public rate filings — and we'll flag it the moment your carrier raises rates where you live. Just tell us who covers your home, your state, and roughly what you pay.",
+    bodyMobile: "Some apps watch your bank account for old subscriptions. We watch public rate filings instead — and flag it if your home insurer raises rates near you.",
     cta: 'Good to know →',
     skip: null,
     noArrow: true,
