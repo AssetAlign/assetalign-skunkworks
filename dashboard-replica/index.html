@@ -3672,12 +3672,25 @@
     const searchInput = document.getElementById('accscreenSearch_homeinsurance');
     if (searchInput) searchInput.value = name;
     const knownState = (aaLoadSession().state || '').trim();
+    // Real bug found and fixed 2026-09-11, caught via live testing (not
+    // visible from the code alone): JSON.stringify() wraps its output in
+    // DOUBLE quotes, but this onclick attribute is ALSO double-quote
+    // delimited — the browser's HTML parser closed the attribute at the
+    // first quote inside JSON.stringify(name)'s output, truncating the
+    // whole handler to just "finalizeHomeInsuranceAccount(" and silently
+    // breaking the Add button (threw "SyntaxError: Unexpected end of
+    // input" on click, confirmed live). HTML-encoding the stringified
+    // quotes as &quot; keeps JSON.stringify's own escaping intact while
+    // decoding back to real quotes before the browser runs it as JS —
+    // same fix already used a few lines up for name/knownState.
+    const nameArg = JSON.stringify(name).replace(/"/g, '&quot;');
+    const urlArg = JSON.stringify(url).replace(/"/g, '&quot;');
     resultsEl.innerHTML = '<div class="accscreen-custom-form">' +
       '<div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Adding ' + name.replace(/"/g, '&quot;') + '</div>' +
       '<input type="text" class="accscreen-search-input" id="hiState" placeholder="State" value="' + knownState.replace(/"/g, '&quot;') + '" maxlength="2" style="text-transform:uppercase;">' +
       '<input type="text" class="accscreen-search-input" id="hiEstRate" placeholder="Roughly what do you pay a month? (optional)" style="margin-top:6px;">' +
       '<div style="font-size:11px;color:var(--muted);margin-top:4px;">This is just your own estimate — we\'ll never treat it as your actual policy figure.</div>' +
-      '<button type="button" class="btn-run-quotes" style="width:100%;margin-top:8px;" onclick="finalizeHomeInsuranceAccount(' + JSON.stringify(name) + ', ' + JSON.stringify(url) + ')">Add →</button>' +
+      '<button type="button" class="btn-run-quotes" style="width:100%;margin-top:8px;" onclick="finalizeHomeInsuranceAccount(' + nameArg + ', ' + urlArg + ')">Add →</button>' +
       '</div>';
     const stateInput = document.getElementById('hiState');
     if (stateInput) stateInput.focus();
