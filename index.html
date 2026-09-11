@@ -99,6 +99,13 @@
 
       <div class="entry">
         <div class="entry-date">2026-09-11</div>
+        <div class="entry-title"><h3>Advisor off-ramp — skip matching, still get the dashboard</h3><span class="status local">In progress — replica only</span></div>
+        <div class="entry-desc">Tests letting someone decline advisor-matching during onboarding without losing the rest of the product — an intentional reversal of "booking is the only path forward," since Marketplace/Rate Watch/credits now offer real value on their own. Added a new <code>onboarding-replica/</code> (full copy of the real onboarding prototype) with a reassurance-framed off-ramp on the scheduling screen; picking it hands off to <code>dashboard-replica/</code> with an explicit <code>advisor_skipped</code> flag instead of a fake match. The dashboard now has an honest "not matched yet" state throughout — goal tracker, Your Advisor card, activity feed, tutorial copy — plus a real "Explore On Your Own" card pointing at what's available without an advisor.</div>
+        <a class="entry-link" href="https://assetalign.github.io/assetalign-skunkworks/onboarding-replica/" target="_blank" rel="noopener">→ Try the off-ramp (Section 3 → "See what else AssetAlign can do")</a>
+      </div>
+
+      <div class="entry">
+        <div class="entry-date">2026-09-11</div>
         <div class="entry-title"><h3>Insurance Rate Watch — integrated into a full replica</h3><span class="status local">In progress — replica only</span></div>
         <div class="entry-desc">The research below is now wired into a full, real replica of <code>assetalign-dashboard-v2</code> (every file, not a mockup), so the idea can be seen in the actual product rather than as a standalone page. Added the one real gap identified: an eighth My Financial Life category, Home Insurance, using the same pattern as the existing seven. Added an illustrative nudge card on the dashboard, styled with the site's real existing nudge-card component, showing a real sourced finding (Allstate, Texas, +8%, effective March 2026) rather than an invented number. The card always shows for now — it doesn't yet actually check whether the member's self-reported carrier matches a live finding.</div>
         <a class="entry-link" href="https://assetalign.github.io/assetalign-skunkworks/dashboard-replica/" target="_blank" rel="noopener">→ See it in the replica</a>
