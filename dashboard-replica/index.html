@@ -4199,22 +4199,18 @@
       cta: 'Good to know →',
       skip: null
     },
-    {
-      // 2026-09-09, per Alex: "we prob want to introduce the all logos in
-      // one place slide before the 'see it for real'... see it for real
-      // should be at the end, all part of the same flow." Spotlights the
-      // new partner-logo-strip (real logos: Zebra, Movement Mortgage,
-      // GoodTrust, PolicyGenius) right before the Exchange teaser's own
-      // "See it for real" step, so the sequence reads as: here's proof
-      // these are real companies → now go see it for real.
-      id: 'tutPartnerLogos',
-      icon: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="9" height="9" rx="2" stroke="#0D3B66" stroke-width="2"/><rect x="16" y="3" width="9" height="9" rx="2" stroke="#0D3B66" stroke-width="2"/><rect x="3" y="16" width="9" height="9" rx="2" stroke="#0D3B66" stroke-width="2"/><rect x="16" y="16" width="9" height="9" rx="2" fill="#F4D35E"/></svg>`,
-      title: 'Real partners. One place.',
-      body: 'Every logo here is a real company we work with — not a mockup. Auto & home insurance, mortgage, estate planning, and more, all vetted and ready when you are.',
-      cta: 'Show me →',
-      skip: null,
-      noArrow: true
-    },
+    // SKUNKWORKS — removed 2026-09-11, per Alex: "i don't think the real
+    // partners in one place.. does anything.. this was really just a
+    // mistake anyways as we were trying to get the logos on the right
+    // side where the logos exist" — i.e. the actual goal (real institution
+    // logos, visible) is already handled by the Accounts Shelf itself; this
+    // tutorial step calling separate attention to a logo strip wasn't
+    // adding anything on top of that. Removed the step outright rather
+    // than reword it — the underlying tutPartnerLogos element on the page
+    // is untouched, only the tour step pointing at it is gone. The
+    // findIndex-based rateWatchIntro/accountsShelf splices below still
+    // resolve correctly without this step, since they search by id, not
+    // a hardcoded position.
     {
       // Migrated from onboarding S14's now-dormant local tutorial (2026-09-02)
       // — its "Your full platform" step had no equivalent here once the
@@ -4310,11 +4306,14 @@
   // workflow or any mention of it" — this is a calm, informational
   // reference-tracking beat and reads oddly sandwiched between a
   // spend-your-credits CTA and the live insurance follow-through. Spliced
-  // in before tutPartnerLogos instead (found by id, not a hardcoded index,
-  // so this doesn't silently break if the array is reordered again) —
-  // runs right after tutEarnCredits, before the whole "put credits to
-  // work → real partners → see it for real" thread starts.
-  tutSteps.splice(tutSteps.findIndex(function (s) { return s.id === 'tutPartnerLogos'; }), 0, {
+  // in before tutExchangeTeaser instead (found by id, not a hardcoded
+  // index, so this doesn't silently break if the array is reordered again)
+  // — runs right after tutEarnCredits. (2026-09-11 update: originally
+  // spliced before tutPartnerLogos, which sat between this step and
+  // tutExchangeTeaser — that step was removed as a real mistake per Alex,
+  // see its own removal note above, so the target moved to
+  // tutExchangeTeaser directly; the resulting order is unchanged.)
+  tutSteps.splice(tutSteps.findIndex(function (s) { return s.id === 'tutExchangeTeaser'; }), 0, {
     id: 'accountsShelf',
     icon: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="8" height="8" rx="2" stroke="#0D3B66" stroke-width="2"/><rect x="16" y="4" width="8" height="8" rx="2" stroke="#0D3B66" stroke-width="2"/><rect x="4" y="16" width="8" height="8" rx="2" stroke="#0D3B66" stroke-width="2"/><rect x="16" y="16" width="8" height="8" rx="2" stroke="#F4D35E" stroke-width="2"/></svg>`,
     title: 'Keep every account in one place.',
@@ -4338,7 +4337,7 @@
   // is honest here since there's genuinely nothing to spotlight yet. Once
   // the Home Insurance intake actually asks for state + estimated rate,
   // that field group is the real thing this step should point at instead.
-  tutSteps.splice(tutSteps.findIndex(function (s) { return s.id === 'tutPartnerLogos'; }), 0, {
+  tutSteps.splice(tutSteps.findIndex(function (s) { return s.id === 'tutExchangeTeaser'; }), 0, {
     id: 'rateWatchIntro',
     icon: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="7" stroke="#0D3B66" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="#F4D35E" stroke-width="2"/><line x1="17" y1="17" x2="24" y2="24" stroke="#0D3B66" stroke-width="2" stroke-linecap="round"/></svg>`,
     title: "We'll watch for you.",
