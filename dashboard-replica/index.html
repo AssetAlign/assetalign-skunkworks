@@ -3619,6 +3619,21 @@
   function promptHomeInsuranceDetails(name, url) {
     const resultsEl = document.getElementById('accscreenResults_homeinsurance');
     if (!resultsEl) return;
+    // SKUNKWORKS — real bug found and fixed 2026-09-11, per Alex: "i
+    // started typing farmer.. it popped up, i selected it but than it
+    // didn't list it,,it just listed the two letters i typed FA." Picking
+    // a result here only ever replaced the RESULTS list with this form —
+    // the search <input> above it was never touched, so it just sat there
+    // showing whatever partial text was typed when the dropdown appeared,
+    // reading as if nothing had happened. Every other category avoids
+    // this because addAccountFromCategory fully re-renders the screen
+    // (which naturally blanks a freshly-built search input) the instant
+    // you click — Home Insurance can't do that yet since it still needs
+    // state + rate first. Fixing the search box to reflect the pick
+    // directly, plus auto-focusing the next real field (state), makes it
+    // read as "confirmed, one more step" instead of "nothing happened."
+    const searchInput = document.getElementById('accscreenSearch_homeinsurance');
+    if (searchInput) searchInput.value = name;
     const knownState = (aaLoadSession().state || '').trim();
     resultsEl.innerHTML = '<div class="accscreen-custom-form">' +
       '<div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Adding ' + name.replace(/"/g, '&quot;') + '</div>' +
@@ -3627,6 +3642,8 @@
       '<div style="font-size:11px;color:var(--muted);margin-top:4px;">This is just your own estimate — we\'ll never treat it as your actual policy figure.</div>' +
       '<button type="button" class="btn-run-quotes" style="width:100%;margin-top:8px;" onclick="finalizeHomeInsuranceAccount(' + JSON.stringify(name) + ', ' + JSON.stringify(url) + ')">Add →</button>' +
       '</div>';
+    const stateInput = document.getElementById('hiState');
+    if (stateInput) stateInput.focus();
   }
   function finalizeHomeInsuranceAccount(name, url) {
     const stateInput = document.getElementById('hiState');
