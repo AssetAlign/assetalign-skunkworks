@@ -1761,25 +1761,6 @@
   <button class="accounts-shelf-viewall" onclick="openAccountsScreen()">View All →</button>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════════
-     SKUNKWORKS — Insurance Rate Watch integration test, not in the real
-     product. Illustrative only: this always shows, rather than actually
-     checking whether the member added Allstate as their Home Insurance
-     tile above. A real version would only render when there's a live
-     match between a My Financial Life "Home Insurance" entry and a
-     recent Rate Watch finding for that carrier + the member's state.
-     The number and state below are real, sourced findings from the
-     Rate Watch research (Allstate Vehicle & Property, Texas, +8%,
-     effective renewals Mar 12 2026) — not invented for this mockup.
-     ══════════════════════════════════════════════════════════════════ -->
-<div class="nudge-card" id="rateWatchCard" style="margin-top:16px;">
-  <div class="nudge-eyebrow">🏠 Insurance Rate Watch</div>
-  <div class="nudge-title">Allstate recently changed home insurance rates in Texas.</div>
-  <div class="nudge-body">Since Allstate is the home insurer you've got listed in My Financial Life, this may be a good time to check whether your coverage is still competitively priced. We can't tell you your exact new rate — only your carrier can — but a quick comparison takes a few minutes.</div>
-  <button class="btn-nudge-yes" style="width:100%; margin-bottom:8px;" onclick="window.location.href=aaExternalHref('marketplace/?dept=insurance')">See if The Zebra can find a better rate →</button>
-  <button class="btn-nudge-no" style="width:100%; text-align:center; display:block;">Not now</button>
-</div>
-
 <!-- ── MY FINANCIAL ACCOUNTS SCREEN — reuses the disclosure modal's own
      overlay/box/header/footer classes (same approach #creditsDetailModal
      already uses), just wider (.accscreen-box) since it holds every
@@ -4233,6 +4214,30 @@
     skip: null,
     noArrow: true, // same reasoning as tutExchangeTeaser above — the panel sits close enough to the fold that arrow geometry isn't worth fighting for
     cardCenter: true // the panel this step is about IS the right side — the card has to live somewhere else, see the dev note on cardCenter above
+  });
+
+  // SKUNKWORKS — Insurance Rate Watch introduction, per Alex 2026-09-11.
+  // Deliberately placed right after accountsShelf rather than as a
+  // standalone step — that step already sets up "tell us who you use for
+  // what"; this is the payoff for why that matters for one specific
+  // category. Same splice pattern as accountsShelf above (find by id, not
+  // a hardcoded index) so this stays correct if the array order changes.
+  // Has no matching id="rateWatchIntro" element in the DOM on purpose —
+  // showTutStep() already handles a step with no real target (just hides
+  // the arrow, still shows the card centered per cardCenter below), which
+  // is honest here since there's genuinely nothing to spotlight yet. Once
+  // the Home Insurance intake actually asks for state + estimated rate,
+  // that field group is the real thing this step should point at instead.
+  tutSteps.splice(tutSteps.findIndex(function (s) { return s.id === 'tutPartnerLogos'; }), 0, {
+    id: 'rateWatchIntro',
+    icon: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="7" stroke="#0D3B66" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="#F4D35E" stroke-width="2"/><line x1="17" y1="17" x2="24" y2="24" stroke="#0D3B66" stroke-width="2" stroke-linecap="round"/></svg>`,
+    title: "We'll watch for you.",
+    body: "Other apps do this by scanning your bank account for duplicate subscriptions. We do it differently: for insurance, just tell us who covers you, what state you're in, and roughly what you're paying — no bank account needed. We'll watch public rate filings, and if your carrier changes rates where you live, we'll let you know. You'll never be the last to find out you're overpaying.",
+    bodyMobile: "Just tell us who insures you, what state, and roughly what you pay — no bank account needed. We'll watch public rate filings and let you know if your carrier changes rates where you live.",
+    cta: 'Good to know →',
+    skip: null,
+    noArrow: true,
+    cardCenter: true
   });
 
   let tutStep = 0, tutActiveEl = null, tutArrowTimer1 = null, tutArrowTimer2 = null, tutScrollLocked = false, tutScrollendHandler = null;
