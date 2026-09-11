@@ -134,7 +134,12 @@ function aaResolveSession() {
   // answers and Finch fields that used to be asked and then discarded (see
   // PASSPORT_FIELD_LABELS' own dev note above for the full list of what
   // used to get thrown away and where each of these comes from).
-  ['goal', 'name', 'state', 'age', 'marital', 'balance', 'email', 'advisor_name', 'advisor_creds', 'advisor_location', 'employer_name', 'meeting_date', 'meeting_time', 'independent',
+  // 'advisor_skipped' added 2026-09-11 for the real advisor off-ramp (see
+  // onboarding-replica's skipAdvisorForNow()) — the one explicit signal
+  // that no advisor was matched on purpose, as opposed to a bare dashboard
+  // visit with no onboarding handoff at all (which still gets the
+  // advisor_name/advisor_creds defaults below, same as before).
+  ['goal', 'name', 'state', 'age', 'marital', 'balance', 'email', 'advisor_name', 'advisor_creds', 'advisor_location', 'employer_name', 'meeting_date', 'meeting_time', 'independent', 'advisor_skipped',
    'income', 'ownHome', 'emergencyFund', 'retireContrib', 'balance401k', 'balanceIRA', 'balanceSavings', 'riskTolerance', 'involvement', 'yearsAtCompany', 'retirementPlanEnrolled'].forEach(function (k) {
     const v = params.get(k);
     if (v !== null) patch[k] = v;
@@ -179,8 +184,15 @@ function aaResolveSession() {
   // handoff at all (e.g. testing the dashboard URL directly) — falls back
   // to advisorArchive[0] (Michael Torres), the same advisor onboarding's
   // own pickPrimaryAdvisor() defaults to with no in-person preference set.
-  if (session.advisor_name === undefined) defaults.advisor_name = 'Michael Torres';
-  if (session.advisor_creds === undefined) defaults.advisor_creds = 'CFP®';
+  // 2026-09-11 — guarded against session.advisor_skipped: without this, a
+  // real off-ramp visit (see onboarding-replica's skipAdvisorForNow(),
+  // which deliberately never sends advisor_name/advisor_creds) would have
+  // silently fallen through to this same "no handoff at all" default and
+  // shown a fake matched advisor to someone who explicitly said they
+  // weren't ready for one — exactly the dishonesty this whole feature
+  // exists to avoid.
+  if (session.advisor_name === undefined && !session.advisor_skipped) defaults.advisor_name = 'Michael Torres';
+  if (session.advisor_creds === undefined && !session.advisor_skipped) defaults.advisor_creds = 'CFP®';
   if (Object.keys(defaults).length) session = aaSaveSession(defaults);
   return session;
 }
