@@ -1563,21 +1563,24 @@
     .decision-banner-left { display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 700; color: var(--yellow); }
     .decision-banner-right { font-size: 12px; color: rgba(255,255,255,0.4); font-style: italic; }
 
-    /* SKUNKWORKS — Insurance Rate Watch alert. White/gold, not navy, so it
-       reads as its own distinct thing sitting between two navy elements
-       (.decision-banner above, .credits-hero below) rather than looking
-       like part of either one. */
-    .rate-watch-box { background: var(--white); border: 1.5px solid var(--yellow-dark); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; }
-    .rate-watch-eyebrow { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--yellow-dark); margin-bottom: 8px; }
+    /* SKUNKWORKS — Insurance Rate Watch box. 2026-09-11: now lives inside
+       .credits-hero (see the HTML above), so this is restyled to the
+       hero's own translucent-glass-on-navy language instead of the old
+       white/gold card — same gold-tinted highlight treatment already
+       used by .goal-track-callout elsewhere in this same hero, so it
+       reads as native to the box rather than a foreign element dropped
+       into it. */
+    .rate-watch-box { background: rgba(244,211,94,0.12); border: 1px solid rgba(244,211,94,0.35); border-radius: 10px; padding: 14px 18px; margin-bottom: 18px; }
+    .rate-watch-eyebrow { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--yellow); margin-bottom: 8px; }
     .rate-watch-row { display: flex; align-items: center; gap: 14px; }
     .rate-watch-icon { font-size: 22px; flex-shrink: 0; }
     .rate-watch-body { flex: 1; min-width: 0; }
-    .rate-watch-title { font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
-    .rate-watch-sub { font-size: 12px; color: var(--muted); line-height: 1.5; }
-    .rate-watch-cta { flex-shrink: 0; background: var(--navy); color: var(--white); border: none; border-radius: 8px; padding: 9px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap; }
-    .rate-watch-cta:hover { background: var(--navy-mid); }
-    .rate-watch-cta.ghost { background: transparent; color: var(--navy); border: 1px solid var(--border); }
-    .rate-watch-cta.ghost:hover { background: var(--gray); }
+    .rate-watch-title { font-size: 13.5px; font-weight: 700; color: var(--white); margin-bottom: 3px; }
+    .rate-watch-sub { font-size: 12px; color: rgba(255,255,255,0.7); line-height: 1.5; }
+    .rate-watch-cta { flex-shrink: 0; background: var(--yellow); color: var(--navy); border: none; border-radius: 8px; padding: 9px 16px; font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
+    .rate-watch-cta:hover { background: #e8c34f; }
+    .rate-watch-cta.ghost { background: transparent; color: var(--white); border: 1px solid rgba(255,255,255,0.3); }
+    .rate-watch-cta.ghost:hover { background: rgba(255,255,255,0.08); }
     @media (max-width: 700px) { .rate-watch-row { flex-wrap: wrap; } .rate-watch-cta { width: 100%; } }
 
     /* ── NUDGE — 2026-09-03, two rounds. Round 1: moved out of the separate
@@ -1811,13 +1814,6 @@
     <div class="decision-banner-right">Every credit you earn is a dollar saved on your next financial move</div>
   </div>
 
-  <!-- SKUNKWORKS — Rate Watch box. Sits here, between the decision banner
-       and the credits hero, on purpose — not inside either one. Always
-       populated by renderRateWatchBox() with one of three real states
-       (invite / watching / active finding) — see that function; it's
-       never left empty the way the id name here might suggest. -->
-  <div id="rateWatchAlert"></div>
-
   <!-- ── HERO + NUDGE ROW ── -->
     <!-- Goal hero -->
     <div class="credits-hero" id="tutCredits">
@@ -1834,6 +1830,19 @@
             </div>
           </div>
         </div>
+
+        <!-- SKUNKWORKS — Rate Watch box. 2026-09-11: moved inside the
+             credits hero itself (was previously its own white/gold box
+             between .decision-banner and .credits-hero) — per Alex, "the
+             rate watch nudge zone would be part of the blue box." Sits
+             above the goal card, restyled to the hero's own translucent
+             glass-on-navy language (see .rate-watch-box) instead of the
+             old white/gold treatment, which only made sense outside the
+             hero. Always populated by renderRateWatchBox() with one of
+             three real states (invite / watching / active finding) — see
+             that function; it's never left empty the way the id name
+             here might suggest. -->
+        <div id="rateWatchAlert"></div>
 
         <!-- DEV NOTE: goal card is now driven by the priority picked during onboarding
              (passed in as ?goal=home|debt|invest|retire|protect via the redirect from
@@ -3191,10 +3200,13 @@
     return null;
   }
 
-  // Lives between .decision-banner and .credits-hero — deliberately its own
-  // element, not folded into either, per Alex 2026-09-11: "without
-  // expanding the blue box we want to have it live above the Your goal
-  // whole thing." 2026-09-11 update, per Alex: "should we coin a phrase..
+  // Lives inside .credits-hero itself, above the goal card — per Alex
+  // 2026-09-11, reversing an earlier call the same day ("without expanding
+  // the blue box we want to have it live above the Your goal whole thing"):
+  // "i was actually thinking the rate watch nudge zone would be part of the
+  // blue box." Styled to the hero's own glass-on-navy language now instead
+  // of the earlier standalone white/gold card (see .rate-watch-box CSS).
+  // 2026-09-11 update, per Alex: "should we coin a phrase..
   // like Rate Watch and have that be a separate little box" — this now
   // ALWAYS renders something, giving the concept a persistent, named home
   // instead of only appearing during the one-time tutorial or when there
@@ -3604,17 +3616,17 @@
     resultsEl.innerHTML = '<div class="accscreen-custom-form">' +
       '<div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Adding ' + name.replace(/"/g, '&quot;') + '</div>' +
       '<input type="text" class="accscreen-search-input" id="hiState" placeholder="State" value="' + knownState.replace(/"/g, '&quot;') + '" maxlength="2" style="text-transform:uppercase;">' +
-      '<input type="text" class="accscreen-search-input" id="hiEstRate" placeholder="Roughly what do you pay a year? (optional)" style="margin-top:6px;">' +
+      '<input type="text" class="accscreen-search-input" id="hiEstRate" placeholder="Roughly what do you pay a month? (optional)" style="margin-top:6px;">' +
       '<div style="font-size:11px;color:var(--muted);margin-top:4px;">This is just your own estimate — we\'ll never treat it as your actual policy figure.</div>' +
-      '<button type="button" class="btn-run-quotes" style="width:100%;margin-top:8px;" onclick="finalizeHomeInsuranceAccount(' + JSON.stringify(name) + ', ' + JSON.stringify(url) + ')">Save →</button>' +
+      '<button type="button" class="btn-run-quotes" style="width:100%;margin-top:8px;" onclick="finalizeHomeInsuranceAccount(' + JSON.stringify(name) + ', ' + JSON.stringify(url) + ')">Add →</button>' +
       '</div>';
   }
   function finalizeHomeInsuranceAccount(name, url) {
     const stateInput = document.getElementById('hiState');
     const rateInput = document.getElementById('hiEstRate');
     const state = stateInput ? stateInput.value.trim().toUpperCase() : '';
-    const estRate = rateInput ? rateInput.value.trim() : '';
-    addSavedAccount('homeinsurance', name, url, { state: state || null, estRate: estRate || null });
+    const estRateMonthly = rateInput ? rateInput.value.trim() : '';
+    addSavedAccount('homeinsurance', name, url, { state: state || null, estRateMonthly: estRateMonthly || null });
     renderAccountsScreenBody();
   }
   // 2026-09-06 — now takes an optional category key so a tile click jumps
