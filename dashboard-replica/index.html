@@ -2780,9 +2780,20 @@
   // always-accurate source for what's actually done vs. open.
   function earnRailRowsConfig() {
     const savedAccounts = getSavedAccounts();
+    const session = aaLoadSession();
     return [
       { label: 'Complete your profile', pts: '+10', done: !!dashboardProgress.goalKnown },
-      { label: 'Schedule with advisor', pts: '+25', done: !!dashboardProgress.goalKnown },
+      // SKUNKWORKS — real bug found and fixed 2026-09-11, caught via live
+      // testing of the new advisor off-ramp: this shared the exact same
+      // `goalKnown` condition as "Complete your profile" above (a
+      // copy-paste leftover), so it always showed done the moment ANY
+      // goal was set — including for someone who explicitly skipped
+      // advisor-matching and never scheduled anything. Every path through
+      // onboarding used to end in a real booking, so this coincidentally
+      // never surfaced as wrong until the off-ramp made it visibly false.
+      // Now tied to the same real session.meeting_date signal the "Your
+      // Advisor" card's own stats already use for genuine completion.
+      { label: 'Schedule with advisor', pts: '+25', done: !!session.meeting_date, dest: session.advisor_skipped ? "window.location.href=aaExternalHref('../onboarding-replica/')" : undefined },
       { label: 'Set up My Financial Life', pts: '+10', done: savedAccounts.length > 0, dest: "openAccountsScreen()" },
       { label: 'Submit insurance info', pts: '+10', done: !!dashboardProgress.autoInsuranceDone, dest: "goToWorkflow('insurance')" },
       { label: 'Add to Rate Watch', pts: '+10', done: savedAccounts.some(function (a) { return a.category === 'homeinsurance'; }), dest: "openAccountsScreen('homeinsurance')" },
