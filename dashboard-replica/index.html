@@ -719,14 +719,6 @@
     .exchange-hero-arrow { color: var(--yellow); font-size: 22px; font-weight: 600; flex-shrink: 0; }
     @media (max-width: 768px) { .exchange-hero { padding: 28px 22px; } }
 
-    /* 2026-09-09 — partner logo strip, per Alex's "all logos in one place"
-       tutorial beat, right before the Marketplace teaser above/below it. */
-    .partner-logo-strip { background: var(--white); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; margin-bottom: 20px; text-align: center; }
-    .partner-logo-strip-label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
-    .partner-logo-strip-row { display: flex; justify-content: center; align-items: center; gap: 16px; flex-wrap: wrap; }
-    .partner-logo-chip { width: 48px; height: 48px; border-radius: 50%; background: var(--gray); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
-    .partner-logo-chip img { width: 28px; height: 28px; object-fit: contain; }
-
     /* ── CREDIT PROJECTION, demoted — 2026-09-06, same dev note as
        .exchange-hero above: keeps every cp-* class (and renderCreditProjection()'s
        real numbers) but overrides the bold navy look to the same plain
@@ -1565,7 +1557,7 @@
 
     /* SKUNKWORKS — Insurance Rate Watch box. 2026-09-11, third placement:
        now its own full-width section inside .dash-tile-columns (see the
-       HTML/nth-child(8) CSS below) — a plain white card matching
+       HTML/nth-child(7) CSS below) — a plain white card matching
        .egs-card/.passport-preview, since this sits on the page's light
        background again, not navy. The gold eyebrow is the one thing
        carried over from the earlier in-hero attempt for brand identity. */
@@ -1626,29 +1618,20 @@
     .dash-tile-columns > *:nth-child(5) { grid-column: 2; grid-row: 2; } /* credit-projection */
     .dash-tile-columns > *:nth-child(6) { grid-column: 2; grid-row: 3; } /* gift-hero-card — 2026-09-09 */
     /* SKUNKWORKS — Rate Watch box, 2026-09-11. Spans both columns as its
-       own full-width row rather than sharing a narrow column with
-       another card — its content (one eyebrow + one line + a button) is
-       a single horizontal row, not something that benefits from a
-       column-width constraint the way the other cards here do.
-       IMPORTANT — this is nth-child(8), not (7): counting real DOM
-       children here (not the stale numbers in the nth-child(1)-(6)
-       comments above) turned up an existing, unrelated drift — there's
-       an uncommented 7th child, .partner-logo-strip#tutPartnerLogos,
-       sitting between passport-preview and exchange-hero#tutExchangeTeaser
-       in the actual markup, which the nth-child(3)-(6) rules above were
-       never updated for. That means every card from "Explore the
-       Marketplace" onward has been landing one nth-child rule off from
-       what its own comment says for a while now — worth a real look
-       separately (likely present in production dashboard-v2 too, not
-       just this replica), but out of scope for the Rate Watch placement
-       task, so left as-is here. #rateWatchAlert is placed correctly for
-       the ACTUAL current DOM order (8th child; giftHeroCard, 7th, has no
-       rule of its own and auto-flows into row 4 as a result — also part
-       of the same pre-existing drift, also left untouched). The
+       own full-width row rather than sharing a narrow column with another
+       card — its content (one eyebrow + one line + a button) is a single
+       horizontal row, not something that benefits from a column-width
+       constraint the way the other cards here do. This is nth-child(7):
+       .partner-logo-strip#tutPartnerLogos (the "Real partners, all in one
+       place" card that used to sit here as an uncounted 7th child, one
+       nth-child rule ahead of everything below it — see git history)
+       was removed outright per Alex, "it was a mistake anyways," which
+       also fixes the resulting drift for free — nth-child(1)-(6) above
+       now land on the cards their own comments actually say again. The
        credits-detail-modal that follows in the file is `position:fixed`,
        so it's excluded from grid item placement per spec regardless of
        its own nth-child number. */
-    .dash-tile-columns > *:nth-child(8) { grid-column: 1 / -1; grid-row: 5; }
+    .dash-tile-columns > *:nth-child(7) { grid-column: 1 / -1; grid-row: 4; }
     @media (max-width: 760px) {
       .dash-tile-columns { grid-template-columns: 1fr; }
       .dash-tile-columns > *:nth-child(1) { grid-column: 1; grid-row: 1; }
@@ -1658,7 +1641,6 @@
       .dash-tile-columns > *:nth-child(5) { grid-column: 1; grid-row: 5; }
       .dash-tile-columns > *:nth-child(6) { grid-column: 1; grid-row: 6; }
       .dash-tile-columns > *:nth-child(7) { grid-column: 1; grid-row: 7; }
-      .dash-tile-columns > *:nth-child(8) { grid-column: 1; grid-row: 8; }
     }
     /* Explicit dark background now (not the translucent-white-on-dark-parent
        trick from round 1) — .nudge-sidebar is a top-level section now, on
@@ -2268,33 +2250,6 @@
       </div>
     </div>
     <a class="passport-preview-cta" href="https://assetalign-passport.netlify.app" target="_blank" rel="noopener">See your full Financial Passport →</a>
-  </div>
-
-  <!-- 2026-09-09, per Alex: introduce a "look how many real partners, all
-       in one place" beat right before the Marketplace teaser/CTA below, so
-       "See it for real" reads as the natural next step after actually
-       seeing the partner logos, not a cold ask — both part of the same
-       tutorial flow (tutPartnerLogos → tutExchangeTeaser). Real logos
-       only, each verified live before use (curl + grep for the site's own
-       icon/logo tags, not guessed): The Zebra and Movement Mortgage
-       hotlinked from their own domains (same pattern as the Marketplace's
-       own partner-spotlight cards). GoodTrust and PolicyGenius originally
-       used Google's favicon service like the Accounts Shelf's arbitrary
-       logos do, but that returned a generic WordPress icon for GoodTrust
-       and a generic default for PolicyGenius — caught via a live screenshot
-       zoom, not assumed correct. Replaced with each site's own real icon,
-       confirmed 200 + a real image file: GoodTrust's own
-       apple-touch-icon-152x152.png, PolicyGenius's own favicon.ico (no
-       apple-touch-icon exists on their domain, but the .ico is real and
-       renders fine as an <img> in modern browsers). -->
-  <div class="partner-logo-strip" id="tutPartnerLogos">
-    <div class="partner-logo-strip-label">Real partners, all in one place</div>
-    <div class="partner-logo-strip-row">
-      <div class="partner-logo-chip"><img src="https://cdn.thezebra.com/zfront/static/1f4b9ab/zfront/img/the-zebra-logomark.png" alt="The Zebra"></div>
-      <div class="partner-logo-chip"><img src="https://movement.com/images/source/movement-mortgage-logo.png" alt="Movement Mortgage"></div>
-      <div class="partner-logo-chip"><img src="https://mygoodtrust.com/apple-touch-icon-152x152.png" alt="GoodTrust"></div>
-      <div class="partner-logo-chip"><img src="https://www.policygenius.com/favicon.ico" alt="PolicyGenius"></div>
-    </div>
   </div>
 
   <!-- ── MARKETPLACE HERO (links to full Align Marketplace) ── -->
@@ -4295,8 +4250,12 @@
     // logos, visible) is already handled by the Accounts Shelf itself; this
     // tutorial step calling separate attention to a logo strip wasn't
     // adding anything on top of that. Removed the step outright rather
-    // than reword it — the underlying tutPartnerLogos element on the page
-    // is untouched, only the tour step pointing at it is gone. The
+    // than reword it — at the time, the underlying tutPartnerLogos page
+    // element itself was deliberately left untouched, out of scope for
+    // that ask. Same-day follow-up, per Alex ("i want to get rid of the
+    // real partner logo strip. it was a mistake anyways"): the element
+    // itself is now gone too (see git history) — this comment's "still on
+    // the page" claim only ever applied to that earlier moment. The
     // findIndex-based rateWatchIntro/accountsShelf splices below still
     // resolve correctly without this step, since they search by id, not
     // a hardcoded position.
