@@ -714,6 +714,16 @@
        first showing, stacking underneath whatever the member navigated to
        next. */
     .mkt-browse-section.mkt-hidden { display: none; }
+    /* 2026-09-12 — same class of bug as the dev note just above, caught
+       via Alex actually clicking through departments (not a classList
+       check): #starterBundleCard ("Your On-Ramp Plan") never got its own
+       .mkt-hidden wiring either. filterMarketplaceDept() was correctly
+       adding the class on every department click the whole time — it just
+       had no CSS effect, so the card stayed visible above every
+       department's real content, reading as if the click wasn't doing
+       anything. Per Alex: it should be the default landing content, but
+       actually disappear once a specific department is chosen. */
+    .starter-bundle-card.mkt-hidden { display: none; }
     .ex-lanes-wrap { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 
     /* 2026-09-04, per Alex: "i just looked at the amazon marketplace and
