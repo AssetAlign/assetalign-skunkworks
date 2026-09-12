@@ -219,6 +219,15 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
 .gap-badge { background: #eaf3de; border-radius: 8px; padding: 12px; margin: 1rem 0; text-align: center; }
 .covered-row { display: flex; flex-direction: column; align-items: center; text-align: center; background: #f5f5f3; border-radius: 8px; padding: 18px 14px; margin: 0.75rem 0; }
 .price-strike { text-decoration: line-through; color: #999; font-size: 13px; }
+/* SKUNKWORKS -- messaging test, 2026-09-12: "next N clicks" proof-of-low-friction
+   box on S6, per Alex ("an arrow with a separate box that says the next 22
+   clicks.. to put yourself in this situation"). Real count (see click-proof-box
+   dev note further down, near the S6 markup) is 7, not 22 -- kept the same
+   visual language as .gap-badge/.covered-row (flat fill, no border/shadow). */
+.click-proof-box { background: #fff; border: 1.5px dashed #c8a84b; border-radius: 10px; padding: 12px 16px; margin: 0.85rem 0 0; text-align: center; }
+.click-proof-num { font-size: 20px; font-weight: 700; color: #1a3a5c; line-height: 1; }
+.click-proof-label { font-size: 12px; color: #666; margin-top: 4px; line-height: 1.4; }
+.click-proof-arrow { font-size: 18px; color: #c8a84b; margin-top: 6px; line-height: 1; }
 .next-step-row { display: flex; align-items: center; gap: 12px; padding: 12px; border: 0.5px solid rgba(0,0,0,0.08); border-radius: 8px; margin-bottom: 8px; background: #fff; }
 .nsd { background: #eaf3de; color: #3b6d11; width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0; }
 .nsa { background: #1a3a5c; color: #fff; width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0; }
@@ -469,7 +478,14 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
            really introduced that concept yet" — dropped "Powered By Your
            Credits" (premature jargon on screen 1) in favor of plain,
            immediate positioning instead. -->
-      <div class="tagline">Your One Place for Every Financial Decision.</div>
+      <!-- SKUNKWORKS -- messaging test, 2026-09-12, per Alex: "what if right
+           in the beginning we want to re-inforce us as the financial
+           decision-making platform.. your mission control for all things..
+           aggregate all the providers you use here." Same positioning as
+           the tagline this replaces, made literal ("mission control")
+           instead of the more abstract "one place" framing -- testing here
+           in skunkworks before it goes anywhere near production. -->
+      <div class="tagline">Your Financial Mission Control.</div>
       <hr class="divider">
       <!-- NOTE: No "partner" language — employer simply makes this available -->
       <!-- s1EmployerName is populated from the ?employer= URL param passed in the welcome email link -->
@@ -488,7 +504,7 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
            Work" 3-box, folded into the existing credits sentence rather
            than a new paragraph/screen, matching the standing "don't
            overload S1" constraint from earlier this same session. -->
-      <p style="font-size:12px;color:#1a1a1a;margin-bottom:4px;">People usually make these decisions in isolation. We brought them together for you — and reward you with Align Credits. Unlike airline miles or credit card points, where 100,000 might get you $50, every Align Credit is worth a real $1 toward advice, insurance, tax prep, and more. <span id="s1InfoLoadedNote">Your info's already loaded — take the next 2 minutes to change your financial future.</span></p>
+      <p style="font-size:12px;color:#1a1a1a;margin-bottom:4px;">Insurance, investments, an advisor — usually scattered across a dozen logins. We bring every provider you use into one place, and reward you with Align Credits along the way. Unlike airline miles or credit card points, where 100,000 might get you $50, every Align Credit is worth a real $1 toward advice, insurance, tax prep, and more. <span id="s1InfoLoadedNote">Your info's already loaded — take the next 2 minutes to change your financial future.</span></p>
       <p id="s1EmployerNote" style="font-size:11px;color:#aaa;margin-bottom:0;">Your plan is already covered by your employer — it's completely up to you whether you choose to work with an advisor. Your employer never sees your information.</p>
       <button class="btn-p" onclick="go(2)">Verify My Info &amp; Get Started →</button>
       <!-- 2026-09-08, per Alex: "one of the first things that comes up says
@@ -675,6 +691,32 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
         <div id="s6EmployerBadge" style="background:#eaf3de;color:#27500a;font-size:11px;font-weight:500;padding:3px 10px;border-radius:99px;margin-top:8px;display:inline-block;">Covered by your employer</div>
       </div>
       <div style="font-size:15px;font-weight:500;color:#1a3a5c;text-align:center;margin:0.75rem 0 0.5rem;">The difference isn’t luck. It’s having a real plan — built by someone who knows what they’re doing.</div>
+      <!-- SKUNKWORKS -- messaging test, 2026-09-12, per Alex: "an arrow with
+           a separate box that says the next 22 clicks (please count the
+           minimum clicks to get an advisor meeting from that point) to put
+           yourself in this type of situation." Actually traced the real
+           minimum click path from THIS button forward, using the fastest
+           real option at every screen (skip buttons where offered):
+             1. This screen's "Get my plan" button          -> go(7)
+             2. S7's "Get my plan" button                   -> goTransition()
+             3. S8's "Skip to my advisor match"              -> showPoints()
+             4. Points overlay's "Find a time that works"    -> continuePoints()/startMatching()
+                (S10's matching animation auto-advances to S11 on its own --
+                no click there)
+             5. S11's "Schedule my 30-minute plan session"   -> goToSchedule()
+             6. S12 mock-Calendly: pick a date               -> selectCalDate()
+             7. S12 mock-Calendly: pick a time                -> confirmCalTime() -> completeBooking()
+           = 7 real clicks, not 22. Excludes the one-time legal disclosure
+           gate (obShowDisclosureGate) since that's a compliance checkbox,
+           not a designed step of this funnel -- same category as a cookie
+           banner, shown once per browser regardless of path. If a real
+           (non-mock) Calendly link is ever plugged into advisorArchive,
+           its own invitee-details step would likely add 1-2 clicks here. -->
+      <div class="click-proof-box">
+        <div class="click-proof-num">7 clicks</div>
+        <div class="click-proof-label">is the real minimum from right here to a scheduled conversation with your advisor.</div>
+        <div class="click-proof-arrow">↓</div>
+      </div>
       <button class="btn-p" onclick="go(7)">Get my plan →</button>
       <div class="hypothetical">* Hypothetical illustration only. Assumes $100,000 starting balance, 7% annual return without professional guidance and 10% with. Actual results will vary.</div>
       <div class="citation">Sources: American Academy of Sleep Medicine, 2025. Kinniry et al., "Putting a Value on Your Value: Quantifying Vanguard Advisor's Alpha®," The Vanguard Group, updated 2024.</div>
