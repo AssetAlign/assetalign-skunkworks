@@ -401,34 +401,6 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 
-/* SKUNKWORKS — "what is a financial plan" explainer bubble, 2026-09-12,
-   per Alex, putting himself in the position of someone who has no idea
-   what a financial plan is, how they get it, or what they do with it.
-   Fixed-position, non-modal (doesn't block the real screen underneath),
-   appears once via a delay so it doesn't compete with S1's own content
-   the instant the page loads — see showPlanExplainerBubble() in JS. */
-.plan-explainer-bubble {
-  /* 2026-09-12 — verified live: bottom-center overlapped S1's "Verify My
-     Info & Get Started" button (the exact CTA someone needs to actually
-     proceed), which a delayed explainer shouldn't ever block. Bottom-right
-     instead — clear of the centered card on any normal viewport; still
-     nearly full-width on mobile where there's no side space to spare,
-     same graceful degradation the dashboard's own tutorial card uses. */
-  position: fixed; bottom: 20px; right: 20px;
-  transform: translateY(20px);
-  max-width: 300px; width: calc(100% - 40px);
-  background: #fff; border: 1px solid #e8c56a; border-radius: 14px;
-  padding: 16px 18px; box-shadow: 0 12px 32px rgba(0,0,0,0.18);
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.4s ease, transform 0.4s ease;
-  z-index: 500;
-}
-.plan-explainer-bubble.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
-.plan-explainer-bubble .peb-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #c8a84b; margin-bottom: 6px; }
-.plan-explainer-bubble .peb-title { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 6px; }
-.plan-explainer-bubble .peb-body { font-size: 12.5px; color: #666; line-height: 1.6; margin-bottom: 12px; }
-.plan-explainer-bubble .peb-close { display: block; width: 100%; text-align: center; background: #1a3a5c; color: #fff; border: none; border-radius: 8px; padding: 9px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
-
 /* ── DISCLOSURE GATE — 2026-09-06, per Alex + Keiron's feedback thread:
      shown once, right before "Schedule my 30-minute session" (the actual
      "become a client" moment), not at S1 (too early — friction before
@@ -660,7 +632,21 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
         <div class="stat-num" style="font-size:34px;">78%</div>
         <div style="font-size:12px;color:#666;">of employees lose sleep over financial stress</div>
       </div>
-      <div style="font-size:14px;font-weight:500;color:#1a3a5c;text-align:center;margin-bottom:1.1rem;">Most people don't have a plan — not because they don't care, but because no one's shown them where to start.</div>
+      <!-- SKUNKWORKS — real fix, 2026-09-12, per Alex: "there is a bit of
+           a jump.. ok great now we know your goal, now let's talk about
+           the best ways to accomplish that.. first thing first, you
+           can't do anything without a plan." Folds the "what is a
+           financial plan" explanation directly into this screen instead
+           of a separate delayed bubble on S1 (see git history for that
+           earlier attempt, removed) — this is the actual moment that
+           needed it: right where the flow pivots from "here's your goal"
+           to "here's why a plan matters," not the very first screen
+           before a goal even exists. s6GoalPhrase is populated in go()'s
+           n===6 branch from the same selectedPriority/priorityLabels the
+           rest of the file already uses (see goToTransition()) — real
+           personalization, not generic copy. -->
+      <div style="font-size:14px;font-weight:500;color:#1a3a5c;text-align:center;margin-bottom:0.6rem;">Now that we know you want to <span id="s6GoalPhrase">reach your goal</span>, let's talk about how to get there — first thing first, you can't make real progress without a plan.</div>
+      <div style="font-size:13px;color:#666;margin-bottom:1.1rem;line-height:1.6;">A plan looks different for everyone. Think of it less like a document and more like a decision-making engine — it tells you the right move at each fork in the road, so you avoid the decisions that can really set you back, and always gives you a real starting point. Most people don't have one, though — not because they don't care, but because no one's shown them where to start.</div>
       <div style="font-size:15px;font-weight:500;color:#1a1a1a;margin-bottom:6px;">Meet your neighbor.</div>
       <div style="font-size:13px;color:#666;margin-bottom:1rem;line-height:1.6;">Same street. Same income. Same mortgage. Same expenses. Exact same financial situation — with one difference: a plan from a financial professional pointing them in the right direction.</div>
       <div class="neighbor-intro">
@@ -1069,24 +1055,6 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
       <button class="btn-disclose-decline" onclick="obDeclineDisclosure()">Not right now</button>
     </div>
   </div>
-</div>
-
-<!-- SKUNKWORKS — "what is a financial plan" delayed explainer, 2026-09-12,
-     per Alex, putting himself in the position of someone who has no idea
-     what a financial plan is, how they get it, or what they do with it.
-     Shows once, a few seconds after S1 (the very first screen everyone
-     sees) loads — long enough to have started reading, not so long they've
-     already moved on — so this gets established before the rest of the
-     flow keeps referencing "your plan." Non-modal (doesn't block S1
-     underneath), dismissible, and auto-dismissed the instant someone
-     navigates to any other screen — see showPlanExplainerBubble()/
-     dismissPlanExplainer() in the JS below, and go()'s own call to the
-     latter so it never lingers into later screens. -->
-<div class="plan-explainer-bubble" id="planExplainerBubble">
-  <div class="peb-label">🧭 Quick Answer</div>
-  <div class="peb-title">What's a financial plan, exactly?</div>
-  <div class="peb-body">It looks different for everyone — there's no single template. Think of it less like a document and more like a decision-making engine: it's what tells you the right move at each fork in the road, so you avoid the financial decisions that can really set you back, and gives you a real starting point instead of guessing.</div>
-  <button class="peb-close" onclick="dismissPlanExplainer()">Got it →</button>
 </div>
 
 <script>
@@ -1537,11 +1505,6 @@ function go(n, fromPopState){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const target = document.getElementById('s'+n);
   if(target) target.classList.add('active');
-  // SKUNKWORKS, 2026-09-12 — the "what is a financial plan" bubble is
-  // fixed-position and would otherwise float on top of every later
-  // screen too; dismissing it on every real navigation (harmless no-op
-  // if it was never shown or already dismissed) keeps it scoped to S1.
-  dismissPlanExplainer();
   document.querySelectorAll('.ps').forEach((p,i)=>{
     p.classList.remove('done','active');
     if(i<n-1) p.classList.add('done');
@@ -1549,7 +1512,19 @@ function go(n, fromPopState){
   });
   document.getElementById('plabel').textContent = sectionMap[n]||'';
   if(n===3) buildGrid();
-  if(n===6) setTimeout(buildChart,300);
+  if(n===6){
+    setTimeout(buildChart,300);
+    // SKUNKWORKS, 2026-09-12 — real personalization for the new "now that
+    // we know your goal" opening line, same priorityLabels/selectedPriority
+    // goToTransition() already uses. Lowercases the first letter since
+    // priorityLabels are written as standalone sentence-case labels
+    // ("Buy a home"), not mid-sentence phrases.
+    const goalPhraseEl = document.getElementById('s6GoalPhrase');
+    if(goalPhraseEl){
+      const label = priorityLabels[selectedPriority] || 'reach your goal';
+      goalPhraseEl.textContent = label.charAt(0).toLowerCase() + label.slice(1);
+    }
+  }
   if(n===11) renderPrimaryAdvisor();
   if(n===12) showScheduleScreen(schedulingAdvisor || advisorArchive[0]);
   if(n===13) filterAdvisors(inPersonPreferred ? 'inperson' : 'all');
@@ -1569,27 +1544,6 @@ window.addEventListener('popstate', function(e){
 // has somewhere in-app to land instead of exiting straight to whatever
 // page was open before this one.
 history.replaceState({screen:1}, '', '#s1');
-
-// SKUNKWORKS — "what is a financial plan" explainer bubble, 2026-09-12,
-// per Alex, putting himself in the position of someone who has no idea
-// what a financial plan is, how they get it, or what they do with it.
-// Shows once, a few seconds after load (S1 is always the first screen),
-// then never again this session once dismissed — see the dev note on its
-// HTML above. go() also dismisses it unconditionally on any navigation,
-// so it never lingers past S1 even if someone moves on before it fires.
-let planExplainerShown = false;
-function showPlanExplainerBubble(){
-  if(planExplainerShown) return;
-  const bubble = document.getElementById('planExplainerBubble');
-  if(!bubble) return;
-  planExplainerShown = true;
-  bubble.classList.add('show');
-}
-function dismissPlanExplainer(){
-  const bubble = document.getElementById('planExplainerBubble');
-  if(bubble) bubble.classList.remove('show');
-}
-setTimeout(showPlanExplainerBubble, 5000);
 
 function goTransition(){
   document.getElementById('prioritySubLabel').textContent = priorityLabels[selectedPriority]+' — locked in';
