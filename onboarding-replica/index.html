@@ -401,6 +401,28 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 
+/* SKUNKWORKS — "what is a financial plan" explainer bubble, 2026-09-12,
+   per Alex, putting himself in the position of someone who has no idea
+   what a financial plan is, how they get it, or what they do with it.
+   Fixed-position, non-modal (doesn't block the real screen underneath),
+   appears once via a delay so it doesn't compete with S1's own content
+   the instant the page loads — see showPlanExplainerBubble() in JS. */
+.plan-explainer-bubble {
+  position: fixed; bottom: 20px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  max-width: 340px; width: calc(100% - 40px);
+  background: #fff; border: 1px solid #e8c56a; border-radius: 14px;
+  padding: 16px 18px; box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  z-index: 500;
+}
+.plan-explainer-bubble.show { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+.plan-explainer-bubble .peb-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #c8a84b; margin-bottom: 6px; }
+.plan-explainer-bubble .peb-title { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 6px; }
+.plan-explainer-bubble .peb-body { font-size: 12.5px; color: #666; line-height: 1.6; margin-bottom: 12px; }
+.plan-explainer-bubble .peb-close { display: block; width: 100%; text-align: center; background: #1a3a5c; color: #fff; border: none; border-radius: 8px; padding: 9px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+
 /* ── DISCLOSURE GATE — 2026-09-06, per Alex + Keiron's feedback thread:
      shown once, right before "Schedule my 30-minute session" (the actual
      "become a client" moment), not at S1 (too early — friction before
@@ -661,9 +683,71 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
         <div id="s6EmployerBadge" style="background:#eaf3de;color:#27500a;font-size:11px;font-weight:500;padding:3px 10px;border-radius:99px;margin-top:8px;display:inline-block;">Covered by your employer</div>
       </div>
       <div style="font-size:15px;font-weight:500;color:#1a3a5c;text-align:center;margin:0.75rem 0 0.5rem;">The difference isn’t luck. It’s having a real plan — built by someone who knows what they’re doing.</div>
-      <button class="btn-p" onclick="goTransition()">Get my plan →</button>
+      <button class="btn-p" onclick="go(7)">Get my plan →</button>
       <div class="hypothetical">* Hypothetical illustration only. Assumes $100,000 starting balance, 7% annual return without professional guidance and 10% with. Actual results will vary.</div>
       <div class="citation">Sources: American Academy of Sleep Medicine, 2025. Kinniry et al., "Putting a Value on Your Value: Quantifying Vanguard Advisor's Alpha®," The Vanguard Group, updated 2024.</div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────
+       S7 — BEYOND THE NUMBERS (what an advisor actually does)
+  ───────────────────────────────────────────── -->
+  <!-- SKUNKWORKS — real screen, 2026-09-12, per Keiron (via Alex): "maybe
+       we introduce more things that an advisor does.. it doesn't have to
+       be performance based like the neighbor slide is.. access to
+       reduced mortgage rates etc." Deliberately NOT a second return
+       comparison — S6 right above already owns that angle (Vanguard's
+       Advisor's Alpha study). Sourced from real research on what
+       advisors provide beyond investment performance (see citation
+       below), not invented copy. On "access to better rates": real
+       private-banking tiers (Chase Private Client, Citigold) do offer
+       preferential mortgage rates, but that's tied to bank deposit
+       tiers, not an independent advisor relationship — claiming an
+       AssetAlign advisor unlocks bank rate discounts would be a stretch.
+       What's real and already true of THIS product instead: the
+       Marketplace already connects members to vetted mortgage/
+       insurance/estate partners — that's the honest version of "access"
+       used in item 4 below.
+       Slots into the existing s5/s7 gap in the screen numbering (see
+       go()'s own dev note on why S5/S7 were removed by id rather than
+       renumbered when they were cut) — sectionMap[7] already existed
+       reserved for this, and the 14-dot progress bar already accounts
+       for this slot (#p7), so nothing else needed renumbering. -->
+  <div class="screen" id="s7">
+    <div class="nav-row"><button class="back" onclick="go(6)">← Back</button><span class="step-ct">Section 1 — Setup</span></div>
+    <div class="card">
+      <div style="font-size:15px;font-weight:500;color:#1a1a1a;margin-bottom:6px;">It's not just about the numbers.</div>
+      <div style="font-size:13px;color:#666;margin-bottom:1rem;line-height:1.6;">The growth chart you just saw is one real piece of it. Here's what an advisor actually does, day to day.</div>
+      <div class="expect-row">
+        <div class="expect-num">1</div>
+        <div>
+          <div style="font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:2px;">Coordinated decisions, not isolated ones</div>
+          <div style="font-size:12px;color:#666;line-height:1.5;">Your investments, insurance, taxes, and estate documents get tied together — so one decision doesn't quietly undercut another, like a beneficiary form that contradicts your will.</div>
+        </div>
+      </div>
+      <div class="expect-row">
+        <div class="expect-num">2</div>
+        <div>
+          <div style="font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:2px;">Tax-smart moves most people miss</div>
+          <div style="font-size:12px;color:#666;line-height:1.5;">Roth conversion timing, charitable giving, tax-loss harvesting — the kind of moves that are easy to miss on your own and hard to undo once a tax year closes.</div>
+        </div>
+      </div>
+      <div class="expect-row">
+        <div class="expect-num">3</div>
+        <div>
+          <div style="font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:2px;">A second set of eyes against costly mistakes</div>
+          <div style="font-size:12px;color:#666;line-height:1.5;">Panic-selling in a downturn, waiting too long on insurance, a mistitled account — the behavioral side of money is where a lot of real damage happens, quietly.</div>
+        </div>
+      </div>
+      <div class="expect-row">
+        <div class="expect-num">4</div>
+        <div>
+          <div style="font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:2px;">Access to a vetted network</div>
+          <div style="font-size:12px;color:#666;line-height:1.5;">Through the AssetAlign Marketplace, you get real, vetted partners for mortgage, insurance, and estate planning — the kind most people spend hours trying to find and trust on their own.</div>
+        </div>
+      </div>
+      <button class="btn-p" onclick="goTransition()">Get my plan →</button>
+      <div class="citation">Sources: Kinniry et al., "Putting a Value on Your Value: Quantifying Vanguard Advisor's Alpha®," The Vanguard Group, updated 2024. Estate/tax coordination practices per CFP Board and NAPFA member guidance.</div>
     </div>
   </div>
 
@@ -979,6 +1063,24 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
       <button class="btn-disclose-decline" onclick="obDeclineDisclosure()">Not right now</button>
     </div>
   </div>
+</div>
+
+<!-- SKUNKWORKS — "what is a financial plan" delayed explainer, 2026-09-12,
+     per Alex, putting himself in the position of someone who has no idea
+     what a financial plan is, how they get it, or what they do with it.
+     Shows once, a few seconds after S1 (the very first screen everyone
+     sees) loads — long enough to have started reading, not so long they've
+     already moved on — so this gets established before the rest of the
+     flow keeps referencing "your plan." Non-modal (doesn't block S1
+     underneath), dismissible, and auto-dismissed the instant someone
+     navigates to any other screen — see showPlanExplainerBubble()/
+     dismissPlanExplainer() in the JS below, and go()'s own call to the
+     latter so it never lingers into later screens. -->
+<div class="plan-explainer-bubble" id="planExplainerBubble">
+  <div class="peb-label">🧭 Quick Answer</div>
+  <div class="peb-title">What's a financial plan, exactly?</div>
+  <div class="peb-body">It looks different for everyone — there's no single template. Think of it less like a document and more like a decision-making engine: it's what tells you the right move at each fork in the road, so you avoid the financial decisions that can really set you back, and gives you a real starting point instead of guessing.</div>
+  <button class="peb-close" onclick="dismissPlanExplainer()">Got it →</button>
 </div>
 
 <script>
@@ -1429,6 +1531,11 @@ function go(n, fromPopState){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const target = document.getElementById('s'+n);
   if(target) target.classList.add('active');
+  // SKUNKWORKS, 2026-09-12 — the "what is a financial plan" bubble is
+  // fixed-position and would otherwise float on top of every later
+  // screen too; dismissing it on every real navigation (harmless no-op
+  // if it was never shown or already dismissed) keeps it scoped to S1.
+  dismissPlanExplainer();
   document.querySelectorAll('.ps').forEach((p,i)=>{
     p.classList.remove('done','active');
     if(i<n-1) p.classList.add('done');
@@ -1456,6 +1563,27 @@ window.addEventListener('popstate', function(e){
 // has somewhere in-app to land instead of exiting straight to whatever
 // page was open before this one.
 history.replaceState({screen:1}, '', '#s1');
+
+// SKUNKWORKS — "what is a financial plan" explainer bubble, 2026-09-12,
+// per Alex, putting himself in the position of someone who has no idea
+// what a financial plan is, how they get it, or what they do with it.
+// Shows once, a few seconds after load (S1 is always the first screen),
+// then never again this session once dismissed — see the dev note on its
+// HTML above. go() also dismisses it unconditionally on any navigation,
+// so it never lingers past S1 even if someone moves on before it fires.
+let planExplainerShown = false;
+function showPlanExplainerBubble(){
+  if(planExplainerShown) return;
+  const bubble = document.getElementById('planExplainerBubble');
+  if(!bubble) return;
+  planExplainerShown = true;
+  bubble.classList.add('show');
+}
+function dismissPlanExplainer(){
+  const bubble = document.getElementById('planExplainerBubble');
+  if(bubble) bubble.classList.remove('show');
+}
+setTimeout(showPlanExplainerBubble, 5000);
 
 function goTransition(){
   document.getElementById('prioritySubLabel').textContent = priorityLabels[selectedPriority]+' — locked in';
