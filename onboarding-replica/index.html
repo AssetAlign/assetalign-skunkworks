@@ -777,6 +777,27 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
            copy established earlier this session. -->
       <div style="font-size:13px;color:#666;margin-bottom:1.25rem;line-height:1.6;">This is about getting your financial plan moving — nothing to sign, nothing to commit to. <span id="schedAdvisorFirst">Your advisor</span> already has your goals, so this takes just a few seconds.</div>
 
+      <!-- SKUNKWORKS — real off-ramp, 2026-09-11, per Alex: "is there a
+           way we are going to let people skip the whole advisor thing?..
+           if we were to give them an off ramp.. we want it to take them
+           to the workflow that says, thats ok, if you aren't ready for a
+           financial plan yet." This screen used to say "booking is the
+           only path forward — no skip/defer option" (see git history) —
+           that's the actual reversal here, not a UI tweak. 2026-09-12
+           follow-up, per Alex ("i don't think i see the off ramp"):
+           moved from a muted footnote below the Calendly widget/"what
+           happens" list up to right here, above the fold, and given real
+           visual weight (bordered box, not just gray text) instead of
+           reading as an afterthought. Routes through skipAdvisorForNow()
+           (see that function's own dev note), which sends every real
+           field a normal handoff would, minus anything advisor/meeting-
+           specific, plus an explicit advisor_skipped=1 flag the dashboard
+           uses to render an honest "not matched yet" state. -->
+      <div style="background:#f7f9fc; border:1px solid #dde5ee; border-radius:10px; padding:14px 16px; margin-bottom:1.25rem; text-align:center;">
+        <div style="font-size:13px; color:#1a1a1a; font-weight:500; margin-bottom:6px;">Not ready for a full financial plan yet? That's completely fine.</div>
+        <button class="btn-ghost" style="width:auto; display:inline-block; padding:0; color:#1a3a5c; font-weight:700; text-decoration:underline;" onclick="skipAdvisorForNow()">See what else AssetAlign can do →</button>
+      </div>
+
       <!-- Advisor mini-card (populated by JS) -->
       <div id="schedAdvisorMini" class="sched-advisor-mini">
         <!-- Populated by showScheduleScreen() -->
@@ -819,23 +840,6 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
         </div>
       </div>
 
-      <!-- SKUNKWORKS — real off-ramp, 2026-09-11, per Alex: "is there a
-           way we are going to let people skip the whole advisor thing?..
-           if we were to give them an off ramp.. we want it to take them
-           to the workflow that says, thats ok, if you aren't ready for a
-           financial plan yet." This screen used to say "booking is the
-           only path forward — no skip/defer option" (see git history) —
-           that's the actual reversal here, not a UI tweak. Framed as
-           reassurance rather than an exit; routes through
-           skipAdvisorForNow() (see that function's own dev note), which
-           sends every real field a normal handoff would, minus anything
-           advisor/meeting-specific, plus an explicit advisor_skipped=1
-           flag the dashboard uses to render an honest "not matched yet"
-           state instead of a fake one. -->
-      <div style="margin-top:1.5rem; padding-top:1.25rem; border-top:0.5px solid rgba(0,0,0,0.08); text-align:center;">
-        <div style="font-size:12px; color:#999; margin-bottom:6px;">Not ready for a full financial plan yet? That's ok.</div>
-        <button class="btn-ghost" style="width:auto; display:inline-block; color:#1a3a5c; text-decoration:underline;" onclick="skipAdvisorForNow()">See what else AssetAlign can do →</button>
-      </div>
     </div>
   </div>
 
