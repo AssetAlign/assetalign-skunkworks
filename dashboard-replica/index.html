@@ -4595,10 +4595,26 @@
     id: 'rateWatchIntro',
     eyebrow: '🏠 Rate Watch',
     cardAccent: true,
+    // 2026-09-12, per Alex: the gold card still "blends with the
+    // background" even with cardAccent's tint — the real cause is that
+    // this step has no spotlight target (nothing to point at yet, see the
+    // dev note above), so the page was just sitting wherever the PRIOR
+    // step (accountsShelf) had scrolled it to, usually nowhere near the
+    // navy hero. scrollToId brings a real element into view before the
+    // card renders, same as every other step's spotlight already does via
+    // focusTutTarget — this one just scrolls to a landmark instead of
+    // outlining it, so the hero's navy sits directly behind the gold card
+    // for real contrast instead of the plain page background.
+    scrollToId: 'tutCredits',
     icon: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="7" stroke="#0D3B66" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="#F4D35E" stroke-width="2"/><line x1="17" y1="17" x2="24" y2="24" stroke="#0D3B66" stroke-width="2" stroke-linecap="round"/></svg>`,
     title: "We'll watch for you.",
-    body: "Some apps quietly watch your bank account to flag an old subscription still draining your money. We watch something different for insurance: not your bank account, but public rate filings — and we'll flag it the moment your carrier raises rates where you live. Just tell us who covers your home, your state, and roughly what you pay.",
-    bodyMobile: "Some apps watch your bank account for old subscriptions. We watch public rate filings instead — and flag it if your home insurer raises rates near you.",
+    // 2026-09-12, per Alex: "its way to wordy" — cut hard rather than
+    // trim again; keeps the subscription-analogy comparison he asked for
+    // (see the 2026-09-11 history above) in one clause instead of a
+    // sentence, and drops restating "insurance" details already covered
+    // by the eyebrow/title.
+    body: "Like apps that catch old subscriptions, we watch for insurance rate hikes — no bank account needed. Tell us who covers your home, your state, and what you pay.",
+    bodyMobile: "We watch for insurance rate hikes — no bank account needed. Tell us your insurer, state, and rate.",
     cta: 'Good to know →',
     skip: null,
     noArrow: true,
@@ -4690,6 +4706,21 @@
       focusTutTarget(el, step.noArrow);
     } else {
       document.getElementById('tutArrowSvg').style.display = 'none';
+      // 2026-09-12 — a step with nothing to spotlight (noArrow) used to
+      // just leave the page wherever the PRIOR step's scroll left it,
+      // which for rateWatchIntro often meant landing on plain page
+      // background instead of anywhere near a real landmark. scrollToId
+      // is an opt-in per-step field (only rateWatchIntro sets it) that
+      // scrolls a real element into view here instead — same
+      // scrollIntoView call focusTutTarget uses above, just for a
+      // background landmark rather than an outlined target.
+      if (step.scrollToId) {
+        const scrollEl = document.getElementById(step.scrollToId);
+        if (scrollEl) {
+          const tutMobile = window.matchMedia('(max-width: 700px)').matches;
+          scrollEl.scrollIntoView({ behavior: 'smooth', block: tutMobile ? 'start' : 'center' });
+        }
+      }
     }
 
     document.getElementById('tutDots').innerHTML = tutSteps.map((_, i) =>
