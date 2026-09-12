@@ -219,15 +219,22 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
 .gap-badge { background: #eaf3de; border-radius: 8px; padding: 12px; margin: 1rem 0; text-align: center; }
 .covered-row { display: flex; flex-direction: column; align-items: center; text-align: center; background: #f5f5f3; border-radius: 8px; padding: 18px 14px; margin: 0.75rem 0; }
 .price-strike { text-decoration: line-through; color: #999; font-size: 13px; }
-/* SKUNKWORKS -- messaging test, 2026-09-12: "next N clicks" proof-of-low-friction
-   box on S6, per Alex ("an arrow with a separate box that says the next 22
-   clicks.. to put yourself in this situation"). Real count (see click-proof-box
-   dev note further down, near the S6 markup) is 7, not 22 -- kept the same
-   visual language as .gap-badge/.covered-row (flat fill, no border/shadow). */
-.click-proof-box { background: #fff; border: 1.5px dashed #c8a84b; border-radius: 10px; padding: 12px 16px; margin: 0.85rem 0 0; text-align: center; }
-.click-proof-num { font-size: 20px; font-weight: 700; color: #1a3a5c; line-height: 1; }
-.click-proof-label { font-size: 12px; color: #666; margin-top: 4px; line-height: 1.4; }
-.click-proof-arrow { font-size: 18px; color: #c8a84b; margin-top: 6px; line-height: 1; }
+/* SKUNKWORKS -- messaging test, 2026-09-12, revised same day per Alex:
+   "i think we want it to be in a separate little pop up that shows next to
+   the graph when they scroll to the graph." Was a static box sitting above
+   the CTA button (see git history) -- moved to float over the chart's own
+   empty upper-left quadrant (both lines start low there; the real data/
+   labels only fill the upper-right as the years progress, see buildChart())
+   and revealed via IntersectionObserver (see initClickPopup()) rather than
+   always visible, so it reads as a moment noticed while looking at the
+   chart, not another static paragraph. Real count (7, not the guessed 22)
+   traced in initClickPopup()'s own dev note. */
+.click-popup { position: absolute; top: 8px; left: 54px; max-width: 158px; background: #fff; border: 1.5px solid #c8a84b; border-radius: 12px; padding: 10px 12px; text-align: center; box-shadow: 0 6px 18px rgba(0,0,0,0.12); opacity: 0; transform: translateY(6px) scale(0.96); transition: opacity 0.5s ease, transform 0.5s ease; pointer-events: none; z-index: 3; }
+.click-popup.visible { opacity: 1; transform: translateY(0) scale(1); }
+.click-popup-num { font-size: 13.5px; font-weight: 700; color: #1a3a5c; line-height: 1.3; }
+.click-popup-label { font-size: 11px; color: #1a3a5c; font-weight: 500; margin-top: 2px; line-height: 1.35; }
+.click-popup-question { font-size: 10.5px; color: #999; font-style: italic; margin-top: 6px; line-height: 1.35; }
+.click-popup-tail { position: absolute; bottom: -6px; left: 20px; width: 11px; height: 11px; background: #fff; border-right: 1.5px solid #c8a84b; border-bottom: 1.5px solid #c8a84b; transform: rotate(45deg); }
 .next-step-row { display: flex; align-items: center; gap: 12px; padding: 12px; border: 0.5px solid rgba(0,0,0,0.08); border-radius: 8px; margin-bottom: 8px; background: #fff; }
 .nsd { background: #eaf3de; color: #3b6d11; width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0; }
 .nsa { background: #1a3a5c; color: #fff; width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0; }
@@ -677,7 +684,15 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
         <div class="legend-item"><div class="legend-dot" style="background:#1a3a5c;"></div>Your neighbor (with a plan)</div>
         <div class="legend-item"><div class="legend-dot" style="background:#c8a84b;"></div>You (without a plan)</div>
       </div>
-      <div class="chart-wrap"><canvas id="growthChart"></canvas></div>
+      <div class="chart-wrap">
+        <canvas id="growthChart"></canvas>
+        <div class="click-popup" id="clickPopup">
+          <div class="click-popup-num">Only 7 clicks</div>
+          <div class="click-popup-label">stand between you and a plan.</div>
+          <div class="click-popup-question">What would your future self say?</div>
+          <div class="click-popup-tail"></div>
+        </div>
+      </div>
       <div class="gap-badge">
         <div style="font-size:13px;color:#3b6d11;font-weight:500;">That gap is <span id="diffDisplay">—</span>.</div>
         <div style="font-size:12px;color:#3b6d11;margin-top:3px;">Closing it starts with the next 5 minutes — right here.</div>
@@ -691,32 +706,6 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
         <div id="s6EmployerBadge" style="background:#eaf3de;color:#27500a;font-size:11px;font-weight:500;padding:3px 10px;border-radius:99px;margin-top:8px;display:inline-block;">Covered by your employer</div>
       </div>
       <div style="font-size:15px;font-weight:500;color:#1a3a5c;text-align:center;margin:0.75rem 0 0.5rem;">The difference isn’t luck. It’s having a real plan — built by someone who knows what they’re doing.</div>
-      <!-- SKUNKWORKS -- messaging test, 2026-09-12, per Alex: "an arrow with
-           a separate box that says the next 22 clicks (please count the
-           minimum clicks to get an advisor meeting from that point) to put
-           yourself in this type of situation." Actually traced the real
-           minimum click path from THIS button forward, using the fastest
-           real option at every screen (skip buttons where offered):
-             1. This screen's "Get my plan" button          -> go(7)
-             2. S7's "Get my plan" button                   -> goTransition()
-             3. S8's "Skip to my advisor match"              -> showPoints()
-             4. Points overlay's "Find a time that works"    -> continuePoints()/startMatching()
-                (S10's matching animation auto-advances to S11 on its own --
-                no click there)
-             5. S11's "Schedule my 30-minute plan session"   -> goToSchedule()
-             6. S12 mock-Calendly: pick a date               -> selectCalDate()
-             7. S12 mock-Calendly: pick a time                -> confirmCalTime() -> completeBooking()
-           = 7 real clicks, not 22. Excludes the one-time legal disclosure
-           gate (obShowDisclosureGate) since that's a compliance checkbox,
-           not a designed step of this funnel -- same category as a cookie
-           banner, shown once per browser regardless of path. If a real
-           (non-mock) Calendly link is ever plugged into advisorArchive,
-           its own invitee-details step would likely add 1-2 clicks here. -->
-      <div class="click-proof-box">
-        <div class="click-proof-num">7 clicks</div>
-        <div class="click-proof-label">is the real minimum from right here to a scheduled conversation with your advisor.</div>
-        <div class="click-proof-arrow">↓</div>
-      </div>
       <button class="btn-p" onclick="go(7)">Get my plan →</button>
       <div class="hypothetical">* Hypothetical illustration only. Assumes $100,000 starting balance, 7% annual return without professional guidance and 10% with. Actual results will vary.</div>
       <div class="citation">Sources: American Academy of Sleep Medicine, 2025. Kinniry et al., "Putting a Value on Your Value: Quantifying Vanguard Advisor's Alpha®," The Vanguard Group, updated 2024.</div>
@@ -2336,8 +2325,48 @@ function runMatchAnimation(){
 // GROWTH CHART
 // ═══════════════════════════════════════════════════
 function fmt(v){ return v>=1000000?'$'+(v/1000000).toFixed(2)+'M':'$'+Math.round(v/1000)+'k'; }
+// SKUNKWORKS -- messaging test, 2026-09-12, per Alex: "a separate little
+// pop up that shows next to the graph when they scroll to the graph..
+// only 7 clicks stands between you and a plan.. what do you think your
+// future self would say." Reveals #clickPopup (see its CSS/HTML near
+// .chart-wrap) via IntersectionObserver once the chart is actually in
+// view, instead of it being visible the moment S6 loads.
+//
+// The "7" is a real traced count, not the original guess of 22 -- fastest
+// real path from THIS screen's own "Get my plan" button to a booked
+// meeting, using the skip option at every screen that offers one:
+//   1. This screen's "Get my plan" button        -> go(7)
+//   2. S7's "Get my plan" button                 -> goTransition()
+//   3. S8's "Skip to my advisor match"           -> showPoints()
+//   4. Points overlay's "Find a time that works" -> continuePoints()/startMatching()
+//      (S10's matching animation auto-advances to S11 on its own -- no click there)
+//   5. S11's "Schedule my 30-minute plan session" -> goToSchedule()
+//   6. S12 mock-Calendly: pick a date             -> selectCalDate()
+//   7. S12 mock-Calendly: pick a time             -> confirmCalTime() -> completeBooking()
+// Excludes the one-time legal disclosure gate (obShowDisclosureGate) --
+// that's a compliance checkbox, not a designed step of this funnel, same
+// category as a cookie banner. A real (non-mock) Calendly link would
+// likely add 1-2 clicks for invitee details.
+let clickPopupObserved = false;
+function initClickPopup(){
+  if(clickPopupObserved) return;
+  const wrap = document.querySelector('#s6 .chart-wrap');
+  const popup = document.getElementById('clickPopup');
+  if(!wrap || !popup || !('IntersectionObserver' in window)) return;
+  clickPopupObserved = true;
+  const obs = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      if(entry.isIntersecting){
+        popup.classList.add('visible');
+        obs.disconnect();
+      }
+    });
+  }, {threshold:0.6});
+  obs.observe(wrap);
+}
 function buildChart(){
   const canvas=document.getElementById('growthChart'); if(!canvas) return;
+  initClickPopup();
   const years=25,base=100000,diyRate=0.07,advRate=0.10;
   const diyData=[],advData=[],xlabels=[];
   for(let i=0;i<=years;i++){
