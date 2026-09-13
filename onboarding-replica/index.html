@@ -67,11 +67,20 @@ aaIsPersistentMode();
 // flash of S1 before the redirect. Only checked in persistent mode -- the
 // normal shared-demo links always start onboarding fresh, same as before;
 // this never affects anyone else's link.
+// SKUNKWORKS -- real fix, 2026-09-13: was checking existing.name, which is
+// wrong -- shared.js's aaResolveSession() defaults ANY bare dashboard visit
+// (even a fresh Logout) to name:'Jordan' and immediately persists that
+// default, so this redirect fired even for someone who'd just logged out,
+// permanently blocking them from ever reaching S2 again to re-onboard.
+// existing.goalKnown is the real signal: aaResolveSession() only ever sets
+// it true when a real ?goal= was actually supplied (i.e. buildBaseHandoffParams()
+// below really ran, meaning onboarding/the off-ramp actually completed) --
+// defaults to false otherwise, including right after a real Logout.
 (function(){
   if(!aaIsPersistentMode()) return;
   try{
     var existing = JSON.parse(localStorage.getItem('aa_persistent_session') || 'null');
-    if(existing && existing.name){
+    if(existing && existing.goalKnown){
       window.location.replace('../dashboard-replica/?alex=1');
     }
   }catch(e){}
@@ -1234,7 +1243,19 @@ const isGift = urlParams.get('gift') === '1';
 // overrides (below) to show a clearly-fake sample identity.
 const isDemo = urlParams.get('demo') === '1';
 const giftFromName = (urlParams.get('from') || '').trim();
-function giftFieldVal(id){
+// SKUNKWORKS -- real fix, 2026-09-13, per Alex, testing his own personal
+// instance: he manually corrected S2's name field to his real name, then
+// asked "why isn't it pulling that data and using that across the entire
+// experience." Root cause: this function is genuinely generic (reads
+// whatever's live in the DOM, '' if the field's still a plain, un-edited
+// div) -- but was misleadingly named/scoped as gift-mode-only, so every
+// call site gated it behind `isGift &&`, meaning a real correction made
+// via enableFieldEditing() (S2's "Something looks wrong" -- the NORMAL,
+// non-gift path) was silently read nowhere, exactly like this function's
+// own old name implied it should be. Renamed + un-gated below at every
+// call site; behavior for an un-edited field (still a div, not a real
+// input) is unchanged -- returns '', same as before.
+function liveFieldVal(id){
   const el = document.getElementById(id);
   return (el && 'value' in el) ? el.value.trim() : '';
 }
@@ -1519,8 +1540,11 @@ const allPriorities = [
 function computeAge(){
   // Gift mode: no ?dob= URL param exists (the referrer never knows a
   // friend's DOB) — read the real value they typed into S2's date input
-  // instead, before falling back to the mock Finch profile.
-  const dobStr = urlParams.get('dob') || (isGift && giftFieldVal('f_dob')) || finchProfile.dob;
+  // instead, before falling back to the mock Finch profile. Also now
+  // covers the NORMAL (non-gift) path: if enableFieldEditing() turned
+  // f_dob into a real <input type="date">, liveFieldVal() picks up
+  // whatever the person actually corrected it to.
+  const dobStr = urlParams.get('dob') || liveFieldVal('f_dob') || finchProfile.dob;
   const dob = new Date(dobStr + 'T00:00:00');
   const today = new Date();
   let age = today.getFullYear() - dob.getFullYear();
@@ -2749,19 +2773,29 @@ function buildBaseHandoffParams(){
   // instead of re-asking — including prefilling the Zebra nudge's "state"
   // field and skipping a second marital-status ask. See v2's
   // applyPersonalization() on assetalign-dashboard-v2.
-  // Gift mode: prefer whatever's actually in the S2 input right now (it was
-  // pre-filled from ?first_name= if the referrer gave one, but the friend
-  // may have corrected it) over the static URL param; ?home_state= never
-  // exists in gift mode at all (the referrer's invite form only asks for a
-  // name/email, not a state), so that always falls to the S2 State field.
-  const firstName = (isGift && giftFieldVal('f_name')) || urlParams.get('first_name') || finchProfile.first_name;
-  const homeState = urlParams.get('home_state') || (isGift && giftFieldVal('f_state').toUpperCase()) || finchProfile.home_state;
+  // Prefer whatever's actually live in the S2 input right now over the
+  // static URL param/mock Finch value -- covers BOTH gift mode (pre-filled
+  // from ?first_name= if the referrer gave one, but the friend may have
+  // corrected it) and the normal path (enableFieldEditing()'s "Something
+  // looks wrong" -- see liveFieldVal()'s own dev note on why this used to
+  // silently drop a real correction here). ?home_state= never exists in
+  // gift mode at all (the referrer's invite form only asks for a
+  // name/email, not a state), so that always falls to the S2 State field;
+  // f_state has no editable row outside gift mode at all, so liveFieldVal
+  // safely returns '' there and this line behaves exactly as before for
+  // the normal path.
+  // f_name's edit input holds the FULL name ("Alex Knight"), but every
+  // "Welcome, {name}" spot in this suite expects just a given name --
+  // take the first word so an edited name reads the same way an
+  // unedited one always has.
+  const firstName = liveFieldVal('f_name').split(/\s+/)[0] || urlParams.get('first_name') || finchProfile.first_name;
+  const homeState = urlParams.get('home_state') || liveFieldVal('f_state').toUpperCase() || finchProfile.home_state;
   // 2026-09-09 — forwarded for the dashboard's "Your Advisor" panel nudge
   // copy ("<employer> made AssetAlign available to you..."). Not sent at
   // all in gift mode — an independent/gift enrollee has no real employer
   // relationship (see isGift's own dev note), so the dashboard falls back
   // to its own generic "your employer" text rather than showing a fake one.
-  const employerDisplay = !isGift && (urlParams.get('employer_name') || finchProfile.employer_name);
+  const employerDisplay = !isGift && (liveFieldVal('f_employer') || urlParams.get('employer_name') || finchProfile.employer_name);
   // Age (not raw DOB) — enough for the "drivers your age" stat hook on the
   // Zebra nudge without passing full birthdate through a URL. Same
   // computeAge() S3's priority ordering already uses — one source of truth.
@@ -2796,10 +2830,25 @@ function buildBaseHandoffParams(){
   // never carried through. Recomputed here rather than reading module vars
   // from initFromFinch() (those are function-scoped) — same exact formula.
   if(!isGift){
-    const startMs = new Date(finchProfile.start_date).getTime();
-    const years = Math.floor((Date.now() - startMs) / (365.25 * 24 * 60 * 60 * 1000));
-    handoffParams.set('yearsAtCompany', years === 1 ? '1 year' : years + ' years');
-    handoffParams.set('retirementPlanEnrolled', finchProfile.retirement_enrolled ? (finchProfile.retirement_type + ' enrolled') : 'No plan on file');
+    // SKUNKWORKS -- real fix, 2026-09-13: same liveFieldVal()/f_retirementValue
+    // pattern as firstName/employerDisplay above -- prefer a real S2
+    // correction over the mock Finch computation.
+    const editedYears = liveFieldVal('f_years');
+    if(editedYears){
+      handoffParams.set('yearsAtCompany', editedYears);
+    } else {
+      const startMs = new Date(finchProfile.start_date).getTime();
+      const years = Math.floor((Date.now() - startMs) / (365.25 * 24 * 60 * 60 * 1000));
+      handoffParams.set('yearsAtCompany', years === 1 ? '1 year' : years + ' years');
+    }
+    // f_retirementValue is set by enableFieldEditing()/selectRetirementStatus()
+    // (see those functions' own dev notes) -- null until S2's fields have
+    // actually been opened for editing at least once.
+    if(typeof f_retirementValue !== 'undefined' && f_retirementValue){
+      handoffParams.set('retirementPlanEnrolled', f_retirementValue === 'enrolled' ? (finchProfile.retirement_type + ' enrolled') : 'No plan on file');
+    } else {
+      handoffParams.set('retirementPlanEnrolled', finchProfile.retirement_enrolled ? (finchProfile.retirement_type + ' enrolled') : 'No plan on file');
+    }
   }
   // Only send a real balance if at least one of the relevant questions was
   // actually answered — if all were skipped entirely, leave it unset so the
