@@ -2846,7 +2846,18 @@
     const savedAccounts = getSavedAccounts();
     const session = aaLoadSession();
     return [
-      { label: 'Complete your profile', pts: '+10', done: !!dashboardProgress.goalKnown },
+      // SKUNKWORKS -- credit economics pass, 2026-09-13, per Alex: "with
+      // zebra.. we get 30 dollars for every time they are doing a
+      // quote.. 10 credits, no problem.. for other things i think we
+      // want to make it 5, except the original 25." "Submit insurance
+      // info" below is the real Zebra event (revenue-backed, stays 10);
+      // everything else here that ISN'T the welcome bonus or an advisor
+      // meeting (both confirmed exceptions) is cut from 10 to 5, whether
+      // or not it's wired to a real award yet -- so the number shown
+      // here always matches what actually pays out (see
+      // addSavedAccount()/vault's startBeneficiaryAudit()/marketplace's
+      // submitLifeQuote() for the real award sites).
+      { label: 'Complete your profile', pts: '+5', done: !!dashboardProgress.goalKnown },
       // SKUNKWORKS — real bug found and fixed 2026-09-11, caught via live
       // testing of the new advisor off-ramp: this shared the exact same
       // `goalKnown` condition as "Complete your profile" above (a
@@ -2858,12 +2869,12 @@
       // Now tied to the same real session.meeting_date signal the "Your
       // Advisor" card's own stats already use for genuine completion.
       { label: 'Schedule with advisor', pts: '+25', done: !!session.meeting_date, dest: session.advisor_skipped ? "window.location.href=aaExternalHref('../onboarding-replica/')" : undefined },
-      { label: 'Set up My Financial Life', pts: '+10', done: savedAccounts.length > 0, dest: "openAccountsScreen()" },
+      { label: 'Set up My Financial Life', pts: '+5', done: savedAccounts.length > 0, dest: "openAccountsScreen()" },
       { label: 'Submit insurance info', pts: '+10', done: !!dashboardProgress.autoInsuranceDone, dest: "goToWorkflow('insurance')" },
-      { label: 'Add to Rate Watch', pts: '+10', done: savedAccounts.some(function (a) { return a.category === 'homeinsurance'; }), dest: "openAccountsScreen('homeinsurance')" },
-      { label: 'Review quotes', pts: '+10', done: false, dest: "window.location.href=aaExternalHref('marketplace/')" },
-      { label: 'Beneficiary audit', pts: '+10', done: !!dashboardProgress.beneficiaryAuditDone, dest: "window.location.href=aaExternalHref('vault/')" },
-      { label: 'Complete plan review', pts: '+10', soon: true },
+      { label: 'Add to Rate Watch', pts: '+5', done: savedAccounts.some(function (a) { return a.category === 'homeinsurance'; }), dest: "openAccountsScreen('homeinsurance')" },
+      { label: 'Review quotes', pts: '+5', done: false, dest: "window.location.href=aaExternalHref('marketplace/')" },
+      { label: 'Beneficiary audit', pts: '+5', done: !!dashboardProgress.beneficiaryAuditDone, dest: "window.location.href=aaExternalHref('vault/')" },
+      { label: 'Complete plan review', pts: '+5', soon: true },
     ];
   }
   function renderEarnRail() {
@@ -3368,13 +3379,30 @@
   // uses (dashboardProgress, aaLoadSession()) — an entry only shows if that
   // thing actually happened this session. See the dev note above
   // #creditsDetailModal.
+  // SKUNKWORKS -- credit economics pass, 2026-09-13, per Alex: "we want
+  // to make sure when the history is there, its showing how they got
+  // them.. we need to continuously show the history so people can track
+  // that." Real gap found: this only ever showed 5 of the (now) 7 real
+  // ways to earn -- Set up My Financial Life, Add to Rate Watch, the
+  // PolicyGenius life quote, and Beneficiary audit all award real
+  // credits (see addSavedAccount()/marketplace's submitLifeQuote()/
+  // vault's startBeneficiaryAudit()) but never showed up here, so
+  // someone's actual balance could silently drift ahead of what this
+  // list explained. Every row below now has a real, matching award
+  // somewhere in the code -- add a row here the same day a new earn
+  // event ships, not after.
   function renderCreditsHistory() {
     const list = document.getElementById('cdmHistoryList');
     if (!list) return;
     const session = aaLoadSession();
+    const savedAccounts = getSavedAccounts();
     const rows = [];
     rows.push({ label: 'Welcome bonus', pts: '+25', earn: true });
+    if (savedAccounts.length > 0) rows.push({ label: 'Set up My Financial Life', pts: '+5', earn: true });
+    if (savedAccounts.some(function (a) { return a.category === 'homeinsurance'; })) rows.push({ label: 'Added to Rate Watch', pts: '+5', earn: true });
     if (session.autoInsuranceDone) rows.push({ label: 'The Zebra — auto insurance info submitted', pts: '+10', earn: true });
+    if (session.lifeQuoteDone) rows.push({ label: 'PolicyGenius — term life quote submitted', pts: '+5', earn: true });
+    if (session.beneficiaryAuditDone) rows.push({ label: 'Beneficiary audit started', pts: '+5', earn: true });
     if (session.estatePlanningDone) rows.push({ label: 'MyGoodTrust — Will & Trust Setup', pts: '-139', earn: false });
     if (session.estateRenewalDone) rows.push({ label: 'MyGoodTrust — Year 2 renewal', pts: '-39', earn: false });
     if (session.lifeInsurancePaid) rows.push({ label: 'Life Insurance — annual payment', pts: '-480', earn: false });
@@ -3890,8 +3918,15 @@
     // account is saved, not just on page load, so adding a Home Insurance
     // tile can surface the alert immediately without a refresh.
     if (typeof renderRateWatchBox === 'function') renderRateWatchBox();
-    if (isFirstAccountEver) addLiveCredits(10);
-    if (category === 'homeinsurance' && !hadHomeInsuranceAlready) addLiveCredits(10);
+    // SKUNKWORKS -- credit economics pass, 2026-09-13, per Alex: "with
+    // things like zebra.. we get 30 dollars for every time they are doing
+    // a quote.. so we can give someone 10 credits on that no problem..
+    // for other things i think we want to make it 5, except the original
+    // 25." Neither of these two awards has a matching confirmed revenue
+    // figure the way Zebra's real $30/quote does (see acceptComparison()/
+    // submitNudge()'s own dev notes, both still +10) -- cut from 10 to 5.
+    if (isFirstAccountEver) addLiveCredits(5);
+    if (category === 'homeinsurance' && !hadHomeInsuranceAlready) addLiveCredits(5);
     if (typeof renderEarnRail === 'function') renderEarnRail();
   }
   function toggleCategoryNA(key, checked) {
@@ -4295,6 +4330,12 @@
   // of a second, less honest way to finish the same nudge.
   function acceptComparison() {
     document.getElementById('nudgeScanResult').style.display = 'none';
+    // SKUNKWORKS -- credit economics pass, 2026-09-13, per Alex: "with
+    // zebra.. we get 30 dollars for every time they are doing a quote..
+    // so we can give someone 10 credits on that, no problem." Real,
+    // confirmed revenue backs this one specifically -- left at 10
+    // deliberately, unlike the other earn events cut to 5 this same pass
+    // (see addSavedAccount()'s own dev note).
     addLiveCredits(10);
     document.getElementById('nudgeSuccess').style.display = 'block';
     showDemoBoundary();
@@ -4414,7 +4455,7 @@
         </div>
       </div>`;
     success.style.display = 'block';
-    addLiveCredits(10);
+    addLiveCredits(10); // real Zebra revenue -- see acceptComparison()'s own dev note, left unchanged
     setTimeout(showDemoBoundary, 1700);
   }
 
