@@ -3275,15 +3275,22 @@
 
   // SKUNKWORKS -- real fix, 2026-09-13, per Alex: "when someone logs them
   // out, it should bring them to a screen that says they successfully
-  // logged out." aaLogout() (shared.js) now redirects here with a
-  // ?logged_out=<timestamp> marker (cache-busted -- see that function's
-  // own dev note on why the value itself doesn't matter, just its
-  // presence) -- checked before personalization ever runs, so a real
-  // logout shows a genuine confirmation instead of a freshly re-defaulted
-  // "Jordan" dashboard that reads like still being logged in. aaIsLoggedOutLoad
-  // is also read by the tutorial's own DOMContentLoaded listener further
+  // logged out," then: "it should allow me to log back in.. so i can
+  // simulate what a month or so looks like." Two real signals gate this,
+  // not just one: the ?logged_out=<timestamp> marker (cache-busted --
+  // see aaLogout()'s own dev note) covers the moment right after clicking
+  // Logout; aa_signed_out (localStorage, persistent-mode only) is the
+  // real, durable "currently logged out" state -- it's what makes this
+  // screen keep showing on a LATER separate visit too (bookmarking the
+  // bare dashboard link while signed out), not just the one page load
+  // immediately following the click. aaLogBackIn() (shared.js) clears it.
+  // Checked before personalization ever runs, so a real logout shows a
+  // genuine confirmation instead of a freshly re-defaulted "Jordan"
+  // dashboard that reads like still being logged in. aaIsLoggedOutLoad is
+  // also read by the tutorial's own DOMContentLoaded listener further
   // down, so the welcome tour doesn't fire on top of this screen either.
-  const aaIsLoggedOutLoad = new URLSearchParams(window.location.search).has('logged_out');
+  const aaIsLoggedOutLoad = new URLSearchParams(window.location.search).has('logged_out') ||
+    (aaIsPersistentMode() && localStorage.getItem('aa_signed_out') === '1');
   if (aaIsLoggedOutLoad) {
     aaShowLoggedOutScreen();
   } else {
