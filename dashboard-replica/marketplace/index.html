@@ -2693,12 +2693,16 @@
     const modalRows = document.getElementById('cdmEarnRows');
     if (!modalRows) return;
     const rows = [
-      { label: 'Complete your profile', pts: '+10', done: !!dashboardProgress.goalKnown },
+      // SKUNKWORKS -- credit economics pass, 2026-09-13: same real-vs-
+      // flat-cost split as the dashboard's own earnRailRowsConfig() (see
+      // its dev note) -- "Submit insurance info" is the real Zebra event,
+      // left at 10; everything else here cut to 5.
+      { label: 'Complete your profile', pts: '+5', done: !!dashboardProgress.goalKnown },
       { label: 'Schedule with advisor', pts: '+25', done: !!dashboardProgress.goalKnown },
       { label: 'Submit insurance info', pts: '+10', done: !!dashboardProgress.autoInsuranceDone, dest: "window.location.href='./?dept=insurance'" },
-      { label: 'Review quotes', pts: '+10', done: false, dest: "closeCreditsDetail()" },
-      { label: 'Beneficiary audit', pts: '+10', done: !!dashboardProgress.beneficiaryAuditDone, dest: "window.location.href='../vault/'" },
-      { label: 'Complete plan review', pts: '+10', soon: true },
+      { label: 'Review quotes', pts: '+5', done: false, dest: "closeCreditsDetail()" },
+      { label: 'Beneficiary audit', pts: '+5', done: !!dashboardProgress.beneficiaryAuditDone, dest: "window.location.href='../vault/'" },
+      { label: 'Complete plan review', pts: '+5', soon: true },
     ];
     modalRows.innerHTML = rows.map(function (r) {
       if (r.soon) return '<div class="vesting-row vesting-row-soon"><span>' + r.label + '</span><span class="vesting-soon-tag">Coming soon</span></div>';
@@ -2970,13 +2974,30 @@
   }
   // 2026-09-04 — real, session-driven history, not a hardcoded fake log —
   // see the identical function's dev note in the Dashboard's index.html.
+  // SKUNKWORKS -- credit economics pass, 2026-09-13: same completeness fix
+  // as the dashboard's own renderCreditsHistory() (see its dev note) --
+  // this copy is missing the same rows. getSavedAccounts() itself is only
+  // defined on the Dashboard page (My Financial Life lives there, not
+  // here), so this reads the same raw storage key directly rather than
+  // duplicating that whole category apparatus just for a history line.
+  function aaMktSavedAccounts() {
+    try {
+      const store = (typeof aaIsPersistentMode === 'function' && aaIsPersistentMode()) ? localStorage : sessionStorage;
+      return JSON.parse(store.getItem('aa_saved_accounts') || '[]');
+    } catch (e) { return []; }
+  }
   function renderCreditsHistory() {
     const list = document.getElementById('cdmHistoryList');
     if (!list) return;
     const session = aaLoadSession();
+    const savedAccounts = aaMktSavedAccounts();
     const rows = [];
     rows.push({ label: 'Welcome bonus', pts: '+25', earn: true });
+    if (savedAccounts.length > 0) rows.push({ label: 'Set up My Financial Life', pts: '+5', earn: true });
+    if (savedAccounts.some(function (a) { return a.category === 'homeinsurance'; })) rows.push({ label: 'Added to Rate Watch', pts: '+5', earn: true });
     if (session.autoInsuranceDone) rows.push({ label: 'The Zebra — auto insurance info submitted', pts: '+10', earn: true });
+    if (session.lifeQuoteDone) rows.push({ label: 'PolicyGenius — term life quote submitted', pts: '+5', earn: true });
+    if (session.beneficiaryAuditDone) rows.push({ label: 'Beneficiary audit started', pts: '+5', earn: true });
     if (session.estatePlanningDone) rows.push({ label: 'MyGoodTrust — Will & Trust Setup', pts: '-139', earn: false });
     if (session.estateRenewalDone) rows.push({ label: 'MyGoodTrust — Year 2 renewal', pts: '-39', earn: false });
     if (session.lifeInsurancePaid) rows.push({ label: 'Life Insurance — annual payment', pts: '-480', earn: false });
@@ -3635,7 +3656,21 @@
     const term = get('lqTerm'); if (term) patch.termLength = term;
     if (lqTobacco !== null) patch.tobaccoUse = lqTobacco ? 'Yes' : 'No';
     if (Object.keys(patch).length) aaSaveSession(patch);
-    addLiveCredits(10);
+    // SKUNKWORKS -- credit economics pass, 2026-09-13, per Alex: "for
+    // other things i think we want to make it 5.. except the original
+    // 25." PolicyGenius's Pro relationship is a plain referral link
+    // today (see this function's own comment above), not a confirmed
+    // per-quote figure the way Zebra's real $30/quote is -- cut from 10
+    // to 5. Also a real, separate bug fixed in the same pass: nothing
+    // guarded this against repeat awards -- reopening this panel and
+    // resubmitting farmed credits every time. lifeQuoteDone (session
+    // flag, same one-time-award pattern as isFirstAccountEver/
+    // hadHomeInsuranceAlready elsewhere in this suite) fixes both at once.
+    const session = aaLoadSession();
+    if (!session.lifeQuoteDone) {
+      addLiveCredits(5);
+      aaSaveSession({ lifeQuoteDone: true });
+    }
     closeLifeQuoteFlow();
     aaShowDemoStop("everything you just told us is saved to your Financial Passport — in the real product, this hands off to PolicyGenius's live quote engine with all of it already carried over, no re-typing.");
   }
@@ -3775,6 +3810,11 @@
   function applyFinalCredits() {
     const selected = document.querySelector('input[name="creditApply"]:checked');
     const spent = selected ? parseInt(selected.value) : 0;
+    // SKUNKWORKS -- credit economics pass, 2026-09-13: this quote flow is
+    // The Zebra's (see this pane's own 'The Zebra · Auto & Home Insurance'
+    // entry in the department config above) -- real, confirmed revenue,
+    // same as the dashboard's acceptComparison()/submitNudge(). Left at
+    // 10 deliberately, unlike the other earn events cut to 5 this pass.
     addLiveCredits(10 - spent);
     // 2026-09-04 — this used to call advanceNudgeToEstate(), which drove the
     // Dashboard's own nudge sidebar straight into its estate-planning step.
