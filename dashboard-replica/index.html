@@ -1990,11 +1990,23 @@
            through the whole flow instead of just the first screen. -->
       <div class="nudge-skip-persistent" onclick="dismissNudge()">Skip for now</div>
 
+      <!-- SKUNKWORKS -- messaging test, 2026-09-13, per Alex: "i hate that we
+           are saying most people.. do we want to reinforce the goal? like
+           whatever you selected.. we don't get there without analyzing to
+           make sure every dollar is spent." Dropped the "most drivers"/68%
+           population-stat framing (same device Alex flagged on S1's stat,
+           just applied here too) for something tied to the member's own
+           goal instead, plus the real reason this matters: per Alex,
+           "people overpay for car insurance b/c they sign up one year and
+           then don't look again but state rates rise and you aren't locked
+           into a rate." nudgeGoalName/nudgeGoalName2 populated from the
+           same goalContent[session.goal] applyPersonalization() already
+           uses for the hero's goal name -- one real signal, not new state. -->
       <div class="nudge-todo" id="nudgeTodo" onclick="openNudgeTodo()">
         <div class="nudge-todo-icon">🚗</div>
         <div class="nudge-todo-text">
-          <div class="nudge-todo-label">Most drivers overpay for car insurance. See if you're one of them.</div>
-          <div class="nudge-todo-sub">Nearly 7 in 10 drivers think they could be saving more, according to Insurify.</div>
+          <div class="nudge-todo-label">Overpaying on car insurance works against <span id="nudgeGoalName">your goal</span>.</div>
+          <div class="nudge-todo-sub">Rates rise every year whether you notice or not — but you're never locked into paying it.</div>
         </div>
         <div class="nudge-todo-arrow">→</div>
       </div>
@@ -2020,15 +2032,13 @@
           </div>
         </div>
         <div class="nudge-eyebrow">🚗 What's Next · Powered by The Zebra</div>
-        <!-- 2026-09-06, per Alex: "make the car insurance thing even more
-             enticing.. are you like X amount of people overpaying.. see if
-             you're overpaying, some hero headline like this." Real stat,
-             same one already used on the collapsed #nudgeTodo teaser above
-             (Insurify survey, Feb 2026, 781 U.S. drivers, insurify.com) —
-             just carried into this expanded card's own title instead of
-             the generic "why pay more than you have to?" it had before. -->
-        <div class="nudge-title">You could be one of the 68% overpaying for car insurance.</div>
-        <div style="font-size:11px; color:var(--muted); margin-top:-4px; margin-bottom:14px;">68% of drivers think they could be saving more — Insurify survey, Feb 2026</div>
+        <!-- SKUNKWORKS -- messaging test, 2026-09-13, see #nudgeTodo's own
+             dev note above -- same goal-personalization swap, replacing
+             the 68%-of-drivers stat with the member's own goal, plus the
+             real reason to check (rates drift up over time; you're not
+             locked in) instead of a population comparison. -->
+        <div class="nudge-title">Every dollar you overpay here is a dollar not going toward <span id="nudgeGoalName2">your goal</span>.</div>
+        <div style="font-size:11px; color:var(--muted); margin-top:-4px; margin-bottom:14px;">Insurers raise rates almost every year, even with a clean record — but you were never locked into that rate.</div>
         <!-- 2026-09-03, per Alex: "we want to really make it bigger when we
              say, based on your information, our partners estimate that you
              should be paying x for monthly insurance." Bumped the dollar
@@ -2339,9 +2349,16 @@
     <div class="cp-eyebrow">⬡ The Power of Your Credits</div>
     <div class="cp-hero-line">Over <em>5 years</em>, <span id="cpNameSpan">Jordan</span>, your participation could be worth</div>
     <div class="cp-hero-number" id="cpHeroNumber">$10,350</div>
+    <!-- SKUNKWORKS -- real fix, 2026-09-13, per Alex: "its all disjointed in
+         the header. fix it." "Stacking up alongside" was an awkward
+         metaphor (value doesn't "stack alongside" a plan) that broke the
+         sentence coming right after the big $10,350 number -- rewritten so
+         the whole eyebrow-through-payoff reads as one continuous statement:
+         Power of Your Credits -> over 5 years, worth $X -> that's on top
+         of (not separate from) your advisor's plan. -->
     <div class="cp-goal-payoff">
       <span style="font-size:16px;">🎯</span>
-      That's real Marketplace value stacking up alongside <strong>your advisor-managed plan</strong>
+      That's real value from the Marketplace — on top of <strong>your advisor-managed plan</strong>, not instead of it.
     </div>
 
     <!-- 2026-09-03 — Alex: replaced the interactive AUM slider + 3/5/10yr
@@ -3028,6 +3045,13 @@
 
     document.getElementById('goalIcon').textContent = goal.icon;
     document.getElementById('goalName').textContent = goal.name;
+    // SKUNKWORKS -- messaging test, 2026-09-13: same goal.name already used
+    // for the hero above, reused for the car-insurance nudge's goal-
+    // personalized copy (see #nudgeTodo/#nudgePrompt's own dev notes).
+    const nudgeGoalName = document.getElementById('nudgeGoalName');
+    if (nudgeGoalName) nudgeGoalName.textContent = goal.name;
+    const nudgeGoalName2 = document.getElementById('nudgeGoalName2');
+    if (nudgeGoalName2) nudgeGoalName2.textContent = goal.name;
     updateGoalTrack(goal);
     // SKUNKWORKS — real off-ramp, 2026-09-11: only ever shown when the
     // real session flag is set — see the card's own dev note above for why.
