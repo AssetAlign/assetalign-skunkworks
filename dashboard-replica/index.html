@@ -865,6 +865,38 @@
     .accounts-cat-tile:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(13,59,102,0.12); border-color: var(--yellow-dark); }
     .accounts-cat-tile.dragging { opacity: 0.4; }
     .accounts-cat-tile.tile-drop-target { border-color: var(--yellow-dark); border-style: dashed; background: var(--yellow-bg); }
+    /* SKUNKWORKS -- Rate Check prominence pass, 2026-09-13, per Alex: "i
+       think we want the fair rate good rate thing to be more prevalent..
+       get the color we assign it a red border." A real, ongoing colored
+       border (not just the small corner badge) on any tile with a
+       computed rateStatus (car insurance now, home insurance too — see
+       estimateHomeInsuranceRateStatus()). Kept as a real border width bump
+       + tinted background, not just a 1px color swap, so it actually
+       reads at a glance rather than needing a close look. */
+    .accounts-cat-tile.rate-over { border: 2px solid #dc2626; background: #fef2f2; }
+    .accounts-cat-tile.rate-fair { border: 2px solid #16a34a; background: #f0fdf4; }
+    .accounts-cat-tile.rate-under { border: 2px solid #2563eb; background: #eff6ff; }
+    /* One-time glow, played only right after a rate is first entered (see
+       aaShowRateCheckReveal()) -- a brief pulse so the moment it's
+       actually detected/assigned reads as a real event, not just a
+       static badge that was always there. One shared keyframe reading a
+       CSS custom property so all three statuses can reuse it. */
+    @keyframes rateGlowPulse {
+      0% { box-shadow: 0 0 0 0 rgba(var(--glow-color), 0); }
+      30% { box-shadow: 0 0 0 6px rgba(var(--glow-color), 0.4); }
+      100% { box-shadow: 0 0 0 0 rgba(var(--glow-color), 0); }
+    }
+    .accounts-cat-tile.rate-glow-over { --glow-color: 220,38,38; animation: rateGlowPulse 1.4s ease-out 2; }
+    .accounts-cat-tile.rate-glow-fair { --glow-color: 22,163,74; animation: rateGlowPulse 1.4s ease-out 2; }
+    .accounts-cat-tile.rate-glow-under { --glow-color: 37,99,235; animation: rateGlowPulse 1.4s ease-out 2; }
+    /* Transient "you're overpaying" style reveal toast — same idea as the
+       existing credit-toast, but its own message/color and a longer,
+       explicit 2s-then-fade lifetime (see aaShowRateCheckReveal()). */
+    .rate-check-toast { position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-12px); z-index: 4000; padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 700; box-shadow: 0 10px 28px rgba(0,0,0,0.18); opacity: 0; transition: opacity 0.25s ease, transform 0.25s ease; pointer-events: none; }
+    .rate-check-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .rate-check-toast.rate-over { background: #fef2f2; color: #b91c1c; border: 1.5px solid #dc2626; }
+    .rate-check-toast.rate-fair { background: #f0fdf4; color: #15803d; border: 1.5px solid #16a34a; }
+    .rate-check-toast.rate-under { background: #eff6ff; color: #1d4ed8; border: 1.5px solid #2563eb; }
     /* 2026-09-06, per Alex: "shiny looking.. like a really crisp bright
        screen of a new iphone.. how the apps all pop." iOS-icon-style
        treatment for the icon well specifically — a light gradient body,
@@ -3585,6 +3617,38 @@
     const status = ratio > 1.15 ? 'over' : ratio < 0.85 ? 'under' : 'fair';
     return { estimate: estimate, status: status };
   }
+
+  // SKUNKWORKS -- Home Insurance Rate Check, 2026-09-13, per Alex: "the
+  // Car insurance box or whatever box has this feature, like home
+  // insurance etc." -- same real, sourced over/underpaying model, applied
+  // to Home Insurance's existing estRateMonthly field (asked since the
+  // Rate Watch integration, never actually compared against anything
+  // until now). National average + state tier, real 2026 figures:
+  // NerdWallet/Insurify/MoneyGeek put the national average near
+  // $234-288/mo for $300K dwelling coverage -- $240 used as a round,
+  // defensible middle. Highest-cost states (Insurify/MoneyGeek 2026
+  // rankings): OK ($605/mo), NE ($501), KS ($455), AR ($413), TX ($410).
+  // Lowest: HI ($75), VT ($98), DE ($114), AK ($115), NJ ($123). No age
+  // multiplier here -- unlike auto insurance, home insurance rates track
+  // the property/location, not the policyholder's age.
+  const HOME_INSURANCE_NATIONAL_AVG_MONTHLY = 240;
+  const HOME_INSURANCE_HIGH_COST_STATES = ['OK', 'NE', 'KS', 'AR', 'TX'];
+  const HOME_INSURANCE_LOW_COST_STATES = ['HI', 'VT', 'DE', 'AK', 'NJ'];
+  function homeInsuranceStateMultiplier(state) {
+    if (!state) return 1;
+    state = state.toUpperCase();
+    if (HOME_INSURANCE_HIGH_COST_STATES.indexOf(state) !== -1) return 1.8;
+    if (HOME_INSURANCE_LOW_COST_STATES.indexOf(state) !== -1) return 0.45;
+    return 1;
+  }
+  function estimateHomeInsuranceRateStatus(monthlyRate, state) {
+    const rate = parseFloat(String(monthlyRate).replace(/[^0-9.]/g, ''));
+    if (!rate || rate <= 0) return null;
+    const estimate = Math.round(HOME_INSURANCE_NATIONAL_AVG_MONTHLY * homeInsuranceStateMultiplier(state));
+    const ratio = rate / estimate;
+    const status = ratio > 1.15 ? 'over' : ratio < 0.85 ? 'under' : 'fair';
+    return { estimate: estimate, status: status };
+  }
   function accountFaviconUrl(domain) {
     return 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(domain) + '&sz=64';
   }
@@ -3662,6 +3726,14 @@
     store.setItem('aa_tile_order', JSON.stringify(order));
   }
   let draggedTileKey = null;
+  // SKUNKWORKS -- Rate Check prominence pass, 2026-09-13: set right before
+  // addSavedAccount() (which itself calls renderAccountsShelf()) so that
+  // ONE upcoming render knows a rate was just entered for this category
+  // and should play the one-time glow -- see finalizeAutoInsuranceAccount()/
+  // finalizeHomeInsuranceAccount() and renderAccountsShelf() itself, which
+  // clears this the instant it's used so the glow never replays on a
+  // later, unrelated re-render.
+  let aaJustAddedRateCategory = null;
   function renderAccountsShelf() {
     const grid = document.getElementById('accountsShelfList');
     if (!grid) return;
@@ -3718,12 +3790,22 @@
       // expects; green = within a normal band of it (a fair rate); blue =
       // notably less (flagged neutrally -- not a problem, just
       // informational, so it doesn't read as an alert the way red does).
-      const rateBadge = (single && single.category === 'autoinsurance' && single.rateStatus)
+      // SKUNKWORKS -- Rate Check prominence pass, 2026-09-13, per Alex:
+      // "i think we want the fair rate good rate thing to be more
+      // prevalent." Applies to any category with a computed rateStatus
+      // (car insurance, home insurance) -- no longer hardcoded to just
+      // autoinsurance. Real border color on the WHOLE tile (not just a
+      // small corner badge, though the badge stays too) plus a one-time
+      // glow pulse the single render right after it's actually entered
+      // (see aaJustAddedRateCategory's own dev note).
+      const rateStatusClass = (single && single.rateStatus) ? ' rate-' + single.rateStatus : '';
+      const rateGlowClass = (single && single.rateStatus && cat.key === aaJustAddedRateCategory) ? ' rate-glow-' + single.rateStatus : '';
+      const rateBadge = (single && single.rateStatus)
         ? '<span class="accounts-tile-rate-badge accounts-tile-rate-' + single.rateStatus + '">' +
           (single.rateStatus === 'over' ? 'Overpaying' : single.rateStatus === 'under' ? 'Below average' : 'Fair rate') +
           '</span>'
         : '';
-      return '<div class="accounts-cat-tile" draggable="true" data-key="' + cat.key + '" onclick="' + tileClick + '">' +
+      return '<div class="accounts-cat-tile' + rateStatusClass + rateGlowClass + '" draggable="true" data-key="' + cat.key + '" onclick="' + tileClick + '">' +
         editBtn +
         '<div class="accounts-tile-icon-wrap">' + iconInner + '</div>' +
         '<div class="accounts-tile-name">' + cat.tileLabel + '</div>' +
@@ -3732,6 +3814,9 @@
         '</div>';
     }).join('');
     wireTileDragReorder(grid);
+    // One-time use -- consumed by this render, so a LATER re-render (e.g.
+    // from an unrelated credit update) never replays the glow.
+    aaJustAddedRateCategory = null;
   }
   // Drag-to-reorder — a real browser drag (native HTML5 drag events) never
   // also fires the tile's click/onclick afterward, so this can't
@@ -3972,8 +4057,48 @@
     const rateInput = document.getElementById('hiEstRate');
     const state = stateInput ? stateInput.value.trim().toUpperCase() : '';
     const estRateMonthly = rateInput ? rateInput.value.trim() : '';
-    addSavedAccount('homeinsurance', name, url, { state: state || null, estRateMonthly: estRateMonthly || null });
+    const rateCheck = estRateMonthly ? estimateHomeInsuranceRateStatus(estRateMonthly, state) : null;
+    if (rateCheck) aaJustAddedRateCategory = 'homeinsurance';
+    addSavedAccount('homeinsurance', name, url, {
+      state: state || null,
+      estRateMonthly: estRateMonthly || null,
+      rateStatus: rateCheck ? rateCheck.status : null,
+      rateEstimate: rateCheck ? rateCheck.estimate : null,
+    });
     renderAccountsScreenBody();
+    if (rateCheck) aaShowRateCheckReveal('homeinsurance', rateCheck);
+  }
+
+  // SKUNKWORKS -- Rate Check prominence pass, 2026-09-13, per Alex: "have
+  // it maybe have some type of graphic around it originally.. the red
+  // goes around the border and glows for a second and says you are
+  // overpaying, or maybe even have a quick pop up that disappears after 2
+  // seconds that says that." Built both together rather than picking one:
+  // the tile's own border+glow (see renderAccountsShelf()) is the ongoing,
+  // always-visible state; this toast is the one-time "something was just
+  // detected" moment, plain-language and gone in 2s so it doesn't linger
+  // like a real alert would. categoryLabel kept generic (car/home
+  // insurance today) so a future third rate-checked category costs just
+  // one more label, not new toast logic.
+  function aaShowRateCheckReveal(category, rateCheck) {
+    const categoryLabel = category === 'homeinsurance' ? 'home insurance' : 'car insurance';
+    const messages = {
+      over: 'You may be overpaying on ' + categoryLabel + ' — about $' + rateCheck.estimate + '/mo is more typical.',
+      fair: 'That’s a fair rate for your ' + categoryLabel + '.',
+      under: 'That’s below average for ' + categoryLabel + ' — nice rate.',
+    };
+    const existing = document.getElementById('rateCheckToast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.id = 'rateCheckToast';
+    toast.className = 'rate-check-toast rate-' + rateCheck.status;
+    toast.textContent = messages[rateCheck.status] || '';
+    document.body.appendChild(toast);
+    requestAnimationFrame(function () { toast.classList.add('show'); });
+    setTimeout(function () {
+      toast.classList.remove('show');
+      setTimeout(function () { toast.remove(); }, 300);
+    }, 2000);
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -4008,12 +4133,14 @@
     const estRateMonthly = rateInput ? rateInput.value.trim() : '';
     const session = aaLoadSession();
     const rateCheck = estRateMonthly ? estimateAutoInsuranceRateStatus(estRateMonthly, session.age, session.state) : null;
+    if (rateCheck) aaJustAddedRateCategory = 'autoinsurance';
     addSavedAccount('autoinsurance', name, url, {
       estRateMonthly: estRateMonthly || null,
       rateStatus: rateCheck ? rateCheck.status : null,
       rateEstimate: rateCheck ? rateCheck.estimate : null,
     });
     renderAccountsScreenBody();
+    if (rateCheck) aaShowRateCheckReveal('autoinsurance', rateCheck);
   }
   // 2026-09-06 — now takes an optional category key so a tile click jumps
   // straight to that category's search instead of always opening at the
