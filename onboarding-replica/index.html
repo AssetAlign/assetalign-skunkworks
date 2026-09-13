@@ -508,14 +508,7 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
            (not just the employer name) since "gave you a gift" doesn't
            fit the "That's why X has made this available" sentence shape —
            see initGiftMode() below for the ?gift=1 swap. -->
-      <!-- SKUNKWORKS -- messaging test, 2026-09-13, per Alex: "im not sure
-           we are getting anything out of that statistic [78% lose sleep].
-           i think we can probably do away with that and just highlight the
-           other things." Dropped the stat-as-justification opener; the very
-           next paragraph already carries the real "highlight" (every
-           provider, aggregated, plus Align Credits), so this line now just
-           states the plain fact and lets that paragraph do the work. -->
-      <p id="s1IntroLine" style="font-size:13px;color:#1a1a1a;margin-bottom:6px;"><span id="s1EmployerName">Your employer</span> has made AssetAlign available to you.</p>
+      <p id="s1IntroLine" style="font-size:13px;color:#1a1a1a;margin-bottom:6px;">78% of employees lose sleep over financial stress. That's why <span id="s1EmployerName">your employer</span> has made AssetAlign available to you.</p>
       <!-- 2026-09-06, per Alex: "include it into a screen in the
            beginning.. just have it be additive" — the Earn/Grow/Spend
            framing already used on the real dashboard's "How Align Credits
@@ -525,18 +518,15 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
       <p style="font-size:12px;color:#1a1a1a;margin-bottom:4px;">Insurance, investments, an advisor — usually scattered across a dozen logins. We bring every provider you use into one place, and reward you with Align Credits along the way. Unlike airline miles or credit card points, where 100,000 might get you $50, every Align Credit is worth a real $1 toward advice, insurance, tax prep, and more. <span id="s1InfoLoadedNote">Your info's already loaded — take the next 2 minutes to change your financial future.</span></p>
       <p id="s1EmployerNote" style="font-size:11px;color:#aaa;margin-bottom:0;">Your plan is already covered by your employer — it's completely up to you whether you choose to work with an advisor. Your employer never sees your information.</p>
       <button class="btn-p" onclick="go(2)">Verify My Info &amp; Get Started →</button>
-      <!-- SKUNKWORKS -- 2026-09-13: removed the 78%-lose-sleep stat (see
-           s1IntroLine's dev note above) along with the citation that
-           supported it, per Alex's call that it wasn't earning its real
-           estate. NOTE: S6's stat-card still opens with this exact same
-           78% figure (its own citation is on S6, unaffected by this) --
-           left alone since Alex's feedback was specifically about this
-           screen; worth asking him directly whether S6 should also drop
-           it or gets a replacement opener, since it's the same stat, not
-           yet a decision I've made unilaterally. -->
-      <!-- id="s1Citation" kept as an element initGiftMode() still safely
-           null-checks/hides -- no citation text to show by default now. -->
-      <div class="citation" id="s1Citation" style="display:none;"></div>
+      <!-- SKUNKWORKS -- 2026-09-13: briefly removed this stat per an earlier
+           misread of Alex's feedback, then restored -- he clarified he
+           meant the 78% on the NEIGHBOR SLIDE (S6), not this screen: "i
+           don't mind us painting a picture in the first screen 'your home
+           base'.. we want to just have a way that people can identify with
+           the feeling.. if its a stat thats ok. i really meant i want the
+           78 [stat] off of the neighbor slide." So this stays as-is; see
+           S6 for the actual removal. -->
+      <div class="citation" id="s1Citation">Source: American Academy of Sleep Medicine, 2025.</div>
     </div>
   </div>
 
@@ -643,27 +633,18 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
   <div class="screen" id="s6">
     <div class="nav-row"><button class="back" onclick="go(4)">← Back</button><span class="step-ct">Section 1 — Setup</span></div>
     <div class="card">
-      <!-- 2026-09-06, per Alex: after cutting the Financial Stress screen
-           (old S5), this lost the "why are we even showing you this"
-           framing. Reuses one real stat from that removed screen rather
-           than inventing a new one; the rest of that screen's content
-           (the full 4-stat grid) stays cut. First pass styled this as a
-           small italic caption — Alex: "it needs to be framed either
-           bigger or more effectively" — restyled using the same
-           .stat-card/.stat-num treatment the old stat grid used, so the
-           number actually carries weight instead of reading as a footnote. -->
-      <!-- 2026-09-08, per Alex: "why is the 78 and 73 discrepancy still
-           there?" — the citation I added earlier wasn't enough; two
-           different real stats about "employees" and "stress" a few
-           screens apart just reads as a contradiction regardless of
-           sourcing. Real fix: stopped using a second stat here at all —
-           this now repeats S1's own 78%-lose-sleep number verbatim, so
-           there's no second number to reconcile. (The 73%/Bank of America
-           stat this replaced is no longer used anywhere in this file.) -->
-      <div class="stat-card" style="margin-bottom:0.7rem;">
-        <div class="stat-num" style="font-size:34px;">78%</div>
-        <div style="font-size:12px;color:#666;">of employees lose sleep over financial stress</div>
-      </div>
+      <!-- SKUNKWORKS -- messaging test, 2026-09-13, per Alex: "i really meant
+           i want the 78 [stat] off of the neighbor slide" -- removed the
+           stat-card that used to open this screen (see git history: it was
+           added 2026-09-06 as "why are we even showing you this" framing
+           after the old Financial Stress screen was cut, then changed
+           2026-09-08 to repeat S1's own 78% number instead of a second,
+           different stat, to kill a 78%-vs-73% discrepancy). That framing
+           job is now handled by the "Now that we know you want to..." line
+           right below, which didn't exist yet back when the stat-card was
+           first added -- the stat isn't needed as a lead-in anymore. S1
+           keeps its own 78% stat + citation; Alex was fine with that one,
+           this was specifically about the repeat on this screen. -->
       <!-- SKUNKWORKS — real fix, 2026-09-12, per Alex: "there is a bit of
            a jump.. ok great now we know your goal, now let's talk about
            the best ways to accomplish that.. first thing first, you
@@ -717,7 +698,7 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
       <div style="font-size:15px;font-weight:500;color:#1a3a5c;text-align:center;margin:0.75rem 0 0.5rem;">The difference isn’t luck. It’s having a real plan — built by someone who knows what they’re doing.</div>
       <button class="btn-p" onclick="go(7)">Get my plan →</button>
       <div class="hypothetical">* Hypothetical illustration only. Assumes $100,000 starting balance, 7% annual return without professional guidance and 10% with. Actual results will vary.</div>
-      <div class="citation">Sources: American Academy of Sleep Medicine, 2025. Kinniry et al., "Putting a Value on Your Value: Quantifying Vanguard Advisor's Alpha®," The Vanguard Group, updated 2024.</div>
+      <div class="citation">Source: Kinniry et al., "Putting a Value on Your Value: Quantifying Vanguard Advisor's Alpha®," The Vanguard Group, updated 2024.</div>
     </div>
   </div>
 
