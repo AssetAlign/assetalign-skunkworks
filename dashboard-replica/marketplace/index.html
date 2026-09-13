@@ -928,6 +928,15 @@
        (not all cards, so unfeatured cards keep their normal spacing) gives
        real clearance instead of shrinking the ribbon or the text. */
     .exchange-card.featured { padding-top: 38px; }
+    /* SKUNKWORKS -- 2026-09-13: top-left (not top-right, where the featured
+       ribbon already sits) so favoriting a card never fights the existing
+       "Overall Pick" badge for the same corner. */
+    .fav-heart { position: absolute; top: 10px; left: 10px; width: 26px; height: 26px; border: none; background: rgba(255,255,255,0.9); border-radius: 50%; font-size: 15px; line-height: 1; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 2; transition: color 0.15s, transform 0.1s; }
+    .fav-heart:hover { transform: scale(1.12); }
+    .fav-heart.is-favorited { color: #d64545; }
+    .fav-heart-inline { border: none; background: none; font-size: 18px; line-height: 1; color: var(--muted); cursor: pointer; padding: 4px; flex-shrink: 0; transition: color 0.15s, transform 0.1s; }
+    .fav-heart-inline:hover { transform: scale(1.12); }
+    .fav-heart-inline.is-favorited { color: #d64545; }
     .partner-badge { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
     .exchange-card h4 { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
     .exchange-card p { font-size: 12px; color: var(--muted); line-height: 1.65; margin-bottom: 14px; }
@@ -1931,6 +1940,9 @@
 
     <div class="exchange-grid" style="grid-template-columns: repeat(2,1fr);">
       <div class="exchange-card featured" onclick="openLifeQuoteFlow()">
+        <!-- SKUNKWORKS -- 2026-09-13: stopPropagation so the heart doesn't
+             also trigger the card's own onclick. -->
+        <button class="fav-heart" data-favorite-id="policygenius-term-life" onclick="event.stopPropagation(); aaHandleFavoriteClick(this, 'policygenius-term-life')">♡</button>
         <div class="partner-badge">PolicyGenius · Term Life</div>
         <h4>Term Life Insurance</h4>
         <p>Get a no-pressure term life quote from a fiduciary-aligned broker. Compare 30+ carriers side by side — no spam, no sales calls unless you want one.</p>
@@ -2124,6 +2136,7 @@
          inconsistency. -->
     <div class="exchange-grid" style="grid-template-columns: repeat(2,1fr);">
       <div class="exchange-card featured" id="goodTrustCard" onclick="openEstateFlow_exchange()">
+        <button class="fav-heart" data-favorite-id="goodtrust" onclick="event.stopPropagation(); aaHandleFavoriteClick(this, 'goodtrust')">♡</button>
         <div class="partner-badge">MyGoodTrust · Estate Planning</div>
         <h4>Will &amp; Trust Setup</h4>
         <p>Create a legally binding will, trust, or beneficiary designation in under an hour. Attorney-guided and valid in all 50 states.</p>
@@ -2283,6 +2296,10 @@
           <div class="partner-list-sub">Quincy, MA · 39 years · 4,000+ loans closed</div>
           <div class="partner-list-reason" id="kevinPickReason">Our most experienced loan officer — 4,000+ loans closed.</div>
         </div>
+        <!-- SKUNKWORKS -- 2026-09-13: heart (not the ⭐ badge above, which
+             means "our pick," not "your favorite") -- stopPropagation so
+             it doesn't also trigger the row's own navigate-to-Kevin click. -->
+        <button class="fav-heart-inline" data-favorite-id="kevin" onclick="event.stopPropagation(); aaHandleFavoriteClick(this, 'kevin')">♡</button>
         <div class="partner-list-chevron">→</div>
       </div>
       <!-- FICTIONAL demo row — see comment above. -->
@@ -2878,6 +2895,9 @@
     const exName = document.getElementById('exNameSpan'); if (exName) exName.textContent = session.name;
     setLiveCredits(session.credits);
     aaShowDisclosureIfNeeded();
+    // SKUNKWORKS -- 2026-09-13: paints saved ♥/♡ state on every real-partner
+    // card that has a data-favorite-id (see shared.js's own dev note).
+    aaInitFavoriteButtons();
 
     // 2026-09-03, per Alex: "becuase they identified mortgage lets have
     // that auto highlighted.. and based on what the people say we want
