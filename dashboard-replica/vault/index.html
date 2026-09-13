@@ -650,8 +650,12 @@
 
     if (vaultUploadContext === 'audit' && !session.beneficiaryAuditDone) {
       aaSaveSession({ beneficiaryAuditDone: true });
-      addLiveCredits(10);
-      showToast('Beneficiary audit started — +10 credits added');
+      // SKUNKWORKS -- credit economics pass, 2026-09-13, per Alex: "for
+      // other things i think we want to make it 5.. except the original
+      // 25." No confirmed revenue backs this one (unlike Zebra's real
+      // $30/quote) -- cut from 10 to 5.
+      addLiveCredits(5);
+      showToast('Beneficiary audit started — +5 credits added');
     } else {
       showToast(fileList.length > 1 ? fileList.length + ' documents added to your Vault' : '"' + fileList[0].name + '" added to your Vault');
     }
