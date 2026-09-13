@@ -25,6 +25,32 @@ function aaIsOwner(){
     return localStorage.getItem('aa_owner')==='1';
   }catch(e){return false;}
 }
+// SKUNKWORKS -- 2026-09-13, per Alex: "i want to start a side route where i
+// can actually start to use this as my financial decision making engine..
+// once i fill in the information i can favorite it and have everything
+// save so i can start to put myself in the position of the people." Every
+// other link into this suite is a shared demo -- deliberately reset on
+// every reload (see dashboard-replica/shared.js's aaResetSessionOnReload())
+// since multiple people reuse the same link and shouldn't inherit each
+// other's data. This is the opposite case: ONE person's own real, ongoing
+// data on ONE browser. `?alex=1`, opened once, flips this localStorage flag
+// permanently (same key dashboard-replica/shared.js checks) so it "sticks"
+// on every future visit without needing the query param again -- and since
+// localStorage is shared across every page under this same
+// assetalign.github.io origin, this flag alone is enough for the dashboard
+// side to know to persist instead of reset, no extra wiring needed there
+// beyond reading it. This file itself has no persistent storage of its own
+// (onboarding is a one-time linear flow, not something to reload
+// mid-stream) -- buildBaseHandoffParams() below just forwards the flag
+// through to the dashboard handoff so it carries across that one real
+// navigation.
+function aaIsPersistentMode(){
+  try{
+    var p=new URLSearchParams(window.location.search);
+    if(p.get('alex')==='1'){localStorage.setItem('aa_persistent_mode','1');}
+    return localStorage.getItem('aa_persistent_mode')==='1';
+  }catch(e){return false;}
+}
 // Tags the alert with who it actually was, when the link carries a real
 // name (every personalized test link — Alex's, Keiron's, etc. — already
 // includes ?first_name=&last_name=&email=). Falls back to "Unknown
@@ -2737,6 +2763,14 @@ function buildBaseHandoffParams(){
   Object.keys(S9_TO_PASSPORT).forEach(function(qid){
     if(selectedAnswers[qid]) handoffParams.set(S9_TO_PASSPORT[qid], selectedAnswers[qid]);
   });
+  // SKUNKWORKS -- 2026-09-13: carry the persistent-mode flag through to the
+  // dashboard (see aaIsPersistentMode()'s own dev note above). Not strictly
+  // required since the localStorage flag it sets is already visible
+  // dashboard-side same-origin, but forwarding it explicitly means a plain
+  // ?alex=1 link ALSO works if pointed straight at the dashboard directly
+  // (skipping onboarding entirely on a later visit), without relying on
+  // onboarding always being the first stop.
+  if(aaIsPersistentMode()) handoffParams.set('alex', '1');
   return handoffParams;
 }
 
