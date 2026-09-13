@@ -56,6 +56,26 @@ function aaIsPersistentMode(){
 // call this early since it only ever writes when the URL literally has
 // ?alex=1, same as calling it late would.
 aaIsPersistentMode();
+// SKUNKWORKS -- real fix, 2026-09-13, per Alex: "i went through.. set up my
+// account as Alex.. and now when i re-clicked on the link.. it put back to
+// the initial onboarding screen." Real gap: this file has no concept of an
+// existing account -- it's a one-time linear flow that always starts at
+// S1, regardless of persistent mode, since the persistence itself lives on
+// the dashboard side (shared.js), not here. A logged-in web app doesn't
+// re-run signup for an account that already exists; this shouldn't either.
+// Runs in <head>, before <body> renders anything, so there's no visible
+// flash of S1 before the redirect. Only checked in persistent mode -- the
+// normal shared-demo links always start onboarding fresh, same as before;
+// this never affects anyone else's link.
+(function(){
+  if(!aaIsPersistentMode()) return;
+  try{
+    var existing = JSON.parse(localStorage.getItem('aa_persistent_session') || 'null');
+    if(existing && existing.name){
+      window.location.replace('../dashboard-replica/?alex=1');
+    }
+  }catch(e){}
+})();
 </script>
 <!--
   ═══════════════════════════════════════════════════════════════════
