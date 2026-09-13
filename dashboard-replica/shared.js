@@ -82,7 +82,16 @@ function aaLogout() {
     if (aaIsPersistentMode()) localStorage.removeItem(AA_PERSISTENT_SESSION_KEY);
     else sessionStorage.removeItem(AA_SESSION_KEY);
   } catch (e) {}
-  window.location.href = window.location.pathname + '?logged_out=1';
+  // SKUNKWORKS -- real fix, 2026-09-13, per Alex, still seeing the old
+  // "Welcome, Jordan" behavior even after a hard refresh: a hard refresh
+  // only forces freshness for the page it's performed ON, not for
+  // wherever a script-driven location.href navigation goes next -- and
+  // this exact URL (?logged_out=1, always the same string) is exactly
+  // the kind of thing a browser or GitHub Pages' CDN can serve a cached
+  // copy of once it's been hit before. Date.now() makes every logout hit
+  // a URL that has never been requested before, so nothing anywhere can
+  // possibly have a stale cached response for it.
+  window.location.href = window.location.pathname + '?logged_out=' + Date.now();
 }
 // Reusable, same injected-overlay pattern as aaInjectDemoStop()/
 // aaShowDemoStop() above. Offers the real ?alex=1 link back into
