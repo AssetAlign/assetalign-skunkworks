@@ -18,6 +18,21 @@
 // copy-paste into production as possible," runnable and editable by Alex
 // alone with no build step, the same philosophy as every other site in
 // this workspace.
+//
+// SKUNKWORKS -- real fix, 2026-09-13: GitHub Pages serves this file with
+// Cache-Control: max-age=600, and every page references it via the exact
+// same fixed filename (<script src="shared.js">) -- so any real change
+// here can sit invisible in a visitor's browser for up to 10 minutes
+// after deploying, no matter how many times THEY hard-refresh the HTML
+// page itself (a hard refresh only forces freshness for the page it's
+// performed on, not a separately-cached script it loads). Every
+// <script src="...shared.js"> tag across this suite (index.html,
+// marketplace/index.html, marketplace/{kevin,sarah,marcus}/index.html,
+// vault/index.html) now carries a ?v=<date+letter> query string --
+// **bump that version on every one of those tags, in the same commit,
+// whenever this file changes** -- a new query string is a URL neither
+// the browser nor GitHub's CDN has ever cached, guaranteeing the fresh
+// file loads immediately instead of waiting out the cache window.
 // ═══════════════════════════════════════════════════════════════════════
 
 const AA_SESSION_KEY = 'aa_session';
