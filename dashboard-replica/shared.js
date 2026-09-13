@@ -22,6 +22,30 @@
 
 const AA_SESSION_KEY = 'aa_session';
 
+// SKUNKWORKS -- 2026-09-13, per Alex: "i want to start a side route where i
+// can actually start to use this as my financial decision making engine..
+// once i fill in the information i can favorite it and have everything
+// save so i can start to put myself in the position of the people." Every
+// other visit to this suite is the shared-demo case this file's own header
+// note describes -- deliberately reset on every reload since multiple
+// people reuse the same link. This is the opposite case: one person's own
+// real, ongoing data. `?alex=1` (set once, from onboarding-replica's own
+// aaIsPersistentMode() or directly on a dashboard-replica link) flips this
+// localStorage flag permanently, so it "sticks" across visits without the
+// query param again. When it's on, aaLoadSession()/aaSaveSession() read
+// and write localStorage (survives closing the tab/browser) instead of
+// sessionStorage, and aaResetSessionOnReload() no longer wipes it on
+// refresh -- the entire point of a real, ongoing session.
+const AA_PERSISTENT_MODE_KEY = 'aa_persistent_mode';
+const AA_PERSISTENT_SESSION_KEY = 'aa_persistent_session';
+function aaIsPersistentMode() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('alex') === '1') localStorage.setItem(AA_PERSISTENT_MODE_KEY, '1');
+    return localStorage.getItem(AA_PERSISTENT_MODE_KEY) === '1';
+  } catch (e) { return false; }
+}
+
 // 2026-09-04, per Alex: "multiple people will be using this link.. i think
 // everytime its closed or someone refreshes it should re start." Closing
 // the tab already resets everything for free — sessionStorage is
@@ -45,10 +69,17 @@ const AA_SESSION_KEY = 'aa_session';
 // string) so a cleared session doesn't immediately get repopulated from
 // old URL params still sitting in the address bar.
 function aaLogout() {
-  try { sessionStorage.removeItem(AA_SESSION_KEY); } catch (e) {}
+  try {
+    if (aaIsPersistentMode()) localStorage.removeItem(AA_PERSISTENT_SESSION_KEY);
+    else sessionStorage.removeItem(AA_SESSION_KEY);
+  } catch (e) {}
   window.location.href = window.location.pathname;
 }
 function aaResetSessionOnReload() {
+  // Persistent mode (see AA_PERSISTENT_MODE_KEY's own dev note above) is
+  // real, ongoing data for one specific person -- a refresh should never
+  // wipe it, which is the whole point of it existing.
+  if (aaIsPersistentMode()) return;
   try {
     const entries = performance.getEntriesByType('navigation');
     const isReload = entries.length
@@ -60,8 +91,10 @@ function aaResetSessionOnReload() {
 aaResetSessionOnReload();
 
 function aaLoadSession() {
-  try { return JSON.parse(sessionStorage.getItem(AA_SESSION_KEY)) || {}; }
-  catch (e) { return {}; }
+  try {
+    if (aaIsPersistentMode()) return JSON.parse(localStorage.getItem(AA_PERSISTENT_SESSION_KEY)) || {};
+    return JSON.parse(sessionStorage.getItem(AA_SESSION_KEY)) || {};
+  } catch (e) { return {}; }
 }
 // 2026-09-07, per Alex: "why didn't the email populate?" — root cause:
 // Marketplace (and Vault) are real, separately-hosted pages — reached
@@ -94,8 +127,53 @@ function aaExternalHref(path) {
 }
 function aaSaveSession(patch) {
   const merged = Object.assign(aaLoadSession(), patch);
-  try { sessionStorage.setItem(AA_SESSION_KEY, JSON.stringify(merged)); } catch (e) {}
+  try {
+    if (aaIsPersistentMode()) localStorage.setItem(AA_PERSISTENT_SESSION_KEY, JSON.stringify(merged));
+    else sessionStorage.setItem(AA_SESSION_KEY, JSON.stringify(merged));
+  } catch (e) {}
   return merged;
+}
+
+// ── FAVORITES -- 2026-09-13, part of the persistent "Alex's own real
+// instance" mode above, but not actually gated on it: favoriting works the
+// same way (stored on the session object, same as any other field) whether
+// a given visit is persistent or the normal shared-demo session -- it just
+// won't survive a demo reload, same as everything else in a normal
+// session. `id` is a stable per-partner string (e.g. 'kevin', 'zebra',
+// 'goodtrust') -- same ids already used as this suite's session-field/
+// PURCHASE_PRODUCTS keys where those exist, invented plainly where they
+// don't (e.g. a directory-listed advisor has no PURCHASE_PRODUCTS entry).
+function aaToggleFavorite(id) {
+  const session = aaLoadSession();
+  const favorites = Array.isArray(session.favorites) ? session.favorites.slice() : [];
+  const idx = favorites.indexOf(id);
+  if (idx === -1) favorites.push(id); else favorites.splice(idx, 1);
+  aaSaveSession({ favorites: favorites });
+  return favorites.indexOf(id) !== -1;
+}
+function aaIsFavorited(id) {
+  const session = aaLoadSession();
+  return Array.isArray(session.favorites) && session.favorites.indexOf(id) !== -1;
+}
+// Heart glyph, not the star already used everywhere else in this suite for
+// "Overall Pick"/quality ranking (Kevin's row, the Marketplace ribbon) --
+// a different symbol keeps "our recommendation" and "your own favorite"
+// from reading as the same thing on a card that shows both.
+function aaPaintFavoriteButton(btn, isFav) {
+  btn.textContent = isFav ? '♥' : '♡';
+  btn.classList.toggle('is-favorited', isFav);
+  btn.setAttribute('aria-label', isFav ? 'Remove from favorites' : 'Add to favorites');
+}
+function aaHandleFavoriteClick(btn, id) {
+  const isFav = aaToggleFavorite(id);
+  aaPaintFavoriteButton(btn, isFav);
+}
+// Call once at page load (after the button markup exists) so hearts
+// reflect whatever's already saved, same pattern as aaPaintNav/setLiveCredits.
+function aaInitFavoriteButtons() {
+  document.querySelectorAll('[data-favorite-id]').forEach(function (btn) {
+    aaPaintFavoriteButton(btn, aaIsFavorited(btn.getAttribute('data-favorite-id')));
+  });
 }
 
 // Call once at the top of every page. URL params (the real handoff from
