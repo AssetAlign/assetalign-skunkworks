@@ -6,25 +6,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AssetAlign — Employee Onboarding v3</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <script>
-(function(){emailjs.init('kX8q18hmRaom62pMz');})();
-
-function aaGetTimestamp(){
-  return new Date().toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
-}
-function aaGetDevice(){
-  return /Mobile|Android|iPhone|iPad/.test(navigator.userAgent)?'Mobile':'Desktop';
-}
-// Owner self-mute: open the link once with ?me=1 to silence notifications from THIS browser/device.
-function aaIsOwner(){
-  try{
-    var p=new URLSearchParams(window.location.search);
-    if(p.get('me')==='1'){localStorage.setItem('aa_owner','1');}
-    if(p.get('me')==='0'){localStorage.removeItem('aa_owner');}
-    return localStorage.getItem('aa_owner')==='1';
-  }catch(e){return false;}
-}
+// SKUNKWORKS -- 2026-09-13, per Alex: "i want to turn off any email alerts
+// we are getting for this skunkworks. im sick of getting pings every two
+// seconds." Removed the entire "someone opened this" visit-alert email
+// system outright (aaGetTimestamp/aaGetDevice/aaIsOwner/aaVisitorLabel/
+// aaSendVisit + the window 'load' listener that fired it on every single
+// page load/reload -- see git history for the removed code). This is the
+// real cause: skunkworks shares its localStorage origin
+// (assetalign.github.io) with the real assetalign-onboarding mirror, but
+// the ?me=1 self-mute only silences alerts on whatever ONE browser opened
+// that link -- every other browser (including this session's own testing
+// browser, reloading this same page dozens of times this session) still
+// fired a real email to alex@assetalign.net on every load. That alert
+// makes sense on the real production onboarding link (a real prospect
+// opening it is worth knowing about) -- it never made sense on an internal
+// testing replica, so removed here rather than just re-muting it, which
+// would only have fixed it for one browser at a time. The real onboarding
+// site's own alert (assetalign-onboarding, not this replica) is untouched.
 // SKUNKWORKS -- 2026-09-13, per Alex: "i want to start a side route where i
 // can actually start to use this as my financial decision making engine..
 // once i fill in the information i can favorite it and have everything
@@ -57,62 +56,6 @@ function aaIsPersistentMode(){
 // call this early since it only ever writes when the URL literally has
 // ?alex=1, same as calling it late would.
 aaIsPersistentMode();
-// Tags the alert with who it actually was, when the link carries a real
-// name (every personalized test link — Alex's, Keiron's, etc. — already
-// includes ?first_name=&last_name=&email=). Falls back to "Unknown
-// visitor" for a bare/untagged link rather than guessing.
-//
-// 2026-09-09 — REF CODES, per Alex: for the broker demo blast, every
-// recipient gets the SAME fake ?first_name=John&last_name=Smith demo
-// identity (that's the point — a consistent, obviously-fake sample
-// person), so name-based tagging can't tell brokers apart the way it does
-// for Alex's/Keiron's own personalized links. He wants per-recipient
-// tracking without the link itself looking personalized — "i don't want
-// to do something so easy as they can see their name... use initials at
-// the end so it's not apparent." A short &ref=<initials> param (reads like
-// an ordinary campaign/referral code, not a personal identifier) is
-// layered ONTO the shared demo link and takes priority in the alert label
-// over the (identical, uninformative) demo name — e.g.
-// ?demo=1&first_name=John&last_name=Smith&dob=...&ref=KO tags the alert
-// "Opened by John Smith [ref: KO]" so Alex can tell Keiron opened it
-// without "KO" or a full name ever appearing as the visible identity on
-// the page itself.
-function aaVisitorLabel(){
-  try{
-    var p=new URLSearchParams(window.location.search);
-    var first=p.get('first_name'),last=p.get('last_name'),email=p.get('email');
-    var ref=p.get('ref');
-    var name=[first,last].filter(Boolean).join(' ');
-    var label=null;
-    if(name || email){ label=(name||'Unknown name')+(email?' ('+email+')':''); }
-    if(ref){ label=(label?label+' [ref: '+ref+']':'[ref: '+ref+']'); }
-    return label;
-  }catch(e){return null;}
-}
-function aaSendVisit(geo){
-  var device=aaGetDevice();
-  var pageUrl=window.location.href;
-  var referrer=document.referrer||'direct';
-  var loc=geo?((geo.city||'?')+', '+(geo.region||'?')+', '+(geo.country_name||geo.country||'?')):'unavailable';
-  var ip=geo?(geo.ip||'?'):'unavailable';
-  var net=geo?(geo.org||geo.asn||'?'):'unavailable';
-  var who=aaVisitorLabel();
-  emailjs.send('service_jy3zs68','template_a3slvpn',{
-    to_email:'alex@assetalign.net',
-    subject:'AssetAlign Onboarding — Opened'+(who?' by '+who:''),
-    message:(who?'Who: '+who+'\n\n':'Someone just opened the AssetAlign Onboarding prototype (no name on this link).\n\n')+'Location: '+loc+'\nIP: '+ip+'\nNetwork / ISP: '+net+'\nDevice: '+device+'\nCame from: '+referrer+'\nTime: '+aaGetTimestamp()+'\nFull URL: '+pageUrl,
-    name:'Onboarding visitor',
-    email:'noreply@assetalign.net',
-    reply_to:'noreply@assetalign.net'
-  });
-}
-window.addEventListener('load',function(){
-  if(aaIsOwner())return;
-  fetch('https://ipapi.co/json/')
-    .then(function(r){return r.json();})
-    .then(function(geo){aaSendVisit(geo);})
-    .catch(function(){aaSendVisit(null);});
-});
 </script>
 <!--
   ═══════════════════════════════════════════════════════════════════
