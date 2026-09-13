@@ -1274,12 +1274,22 @@ function initFromFinch(){
   // S2: populate fields
   document.getElementById('f_name').textContent      = [displayFirst, displayMiddle, displayLast].filter(Boolean).join(' ');
   document.getElementById('f_dob').textContent       = dobLabel;
+  // SKUNKWORKS -- 2026-09-13: the raw ISO value, not the pretty display
+  // string ("March 15, 1988"), is what enableFieldEditing() needs to
+  // correctly seed a real <input type="date"> below -- see that function's
+  // own dev note.
+  document.getElementById('f_dob').dataset.raw = dobOverride || p.dob;
   document.getElementById('f_zip').textContent       = urlParams.get('zip') || p.home_zip;
   document.getElementById('f_employer').textContent  = employerDisplay;
   document.getElementById('f_years').textContent     = yrsLabel;
   document.getElementById('f_retirement').innerHTML  = p.retirement_enrolled
     ? `${p.retirement_type} enrolled <span class="badge-g">Active</span>`
     : `No plan on file <span class="badge-a">Check with HR</span>`;
+  // SKUNKWORKS -- 2026-09-13: same idea as f_dob's data-raw above -- the
+  // real boolean, so enableFieldEditing() can correctly pre-select
+  // Enrolled/Not Enrolled instead of trying to infer it back out of the
+  // rendered label text.
+  document.getElementById('f_retirement').dataset.raw = p.retirement_enrolled ? '1' : '0';
 }
 
 // 2026-09-09 — GIFT MODE (see the ?gift=1/isGift dev note above urlParams).
@@ -1347,7 +1357,15 @@ function initGiftMode(){
 // flag the mismatch for HR review) — this just lets someone see and fix an
 // obviously-wrong field before moving on, rather than being stuck.
 function enableFieldEditing(){
-  ['f_name','f_dob','f_zip','f_employer','f_years','f_retirement'].forEach(id=>{
+  // SKUNKWORKS -- real fix, 2026-09-13, per Alex testing his own personal
+  // instance: "if someone wants to edit their details.. we should be
+  // specific about the format... it didn't show me so i didn't know what
+  // to type." Every field used to become the exact same plain type="text"
+  // input regardless of what kind of value it actually holds -- fine for
+  // Full name/ZIP/Employer/Years, genuinely ambiguous for a date. Special-
+  // cased below instead of changed for all six, since name/zip/employer/
+  // years are real free text and should stay that way.
+  ['f_name','f_zip','f_employer','f_years'].forEach(id=>{
     const el = document.getElementById(id);
     const currentText = el.textContent.trim();
     const input = document.createElement('input');
@@ -1357,9 +1375,52 @@ function enableFieldEditing(){
     input.value = currentText;
     el.replaceWith(input);
   });
+
+  // Native date input -- the browser's own picker/format is unambiguous,
+  // instead of a blank text box someone has to guess a format for.
+  // data-raw (set in initFromFinch(), a real ISO yyyy-mm-dd string) seeds
+  // it correctly; the field's own pretty display text ("March 15, 1988")
+  // isn't a valid <input type="date"> value.
+  const dobEl = document.getElementById('f_dob');
+  const dobRaw = dobEl.dataset.raw || '';
+  const dobInput = document.createElement('input');
+  dobInput.type = 'date';
+  dobInput.id = 'f_dob';
+  dobInput.className = 'fval-input';
+  if (dobRaw) dobInput.value = dobRaw;
+  dobEl.replaceWith(dobInput);
+
+  // SKUNKWORKS -- real fix, 2026-09-13, per Alex: "on the retirement
+  // program.. there should just be a box that says not enrolled. we don't
+  // want people just writing whatever." A real plan-enrollment status is
+  // exactly two states, not free text -- two buttons instead, same
+  // .filter-btn component already used for S9's meeting-format choice.
+  // f_retirementValue (a plain module var, not a real hidden <input>) is
+  // what any future real save handler should read -- there's nowhere that
+  // reads it yet (see this function's own header note: corrections aren't
+  // persisted anywhere in this prototype), same gap that already existed
+  // for the plain-text fields, not a new one introduced here.
+  const retEl = document.getElementById('f_retirement');
+  const retWasEnrolled = retEl.dataset.raw === '1';
+  f_retirementValue = retWasEnrolled ? 'enrolled' : 'not_enrolled';
+  const retWrap = document.createElement('div');
+  retWrap.id = 'f_retirement';
+  retWrap.className = 'filter-bar';
+  retWrap.style.marginBottom = '0';
+  retWrap.innerHTML =
+    '<button type="button" class="filter-btn' + (retWasEnrolled ? ' active' : '') + '" id="retEnrolledBtn" onclick="selectRetirementStatus(true)">Enrolled</button>' +
+    '<button type="button" class="filter-btn' + (retWasEnrolled ? '' : ' active') + '" id="retNotEnrolledBtn" onclick="selectRetirementStatus(false)">Not enrolled</button>';
+  retEl.replaceWith(retWrap);
+
   document.getElementById('s2ConfirmBtn').style.display = 'none';
   document.getElementById('s2WrongBtn').style.display = 'none';
   document.getElementById('s2SaveBtn').style.display = 'block';
+}
+let f_retirementValue = null;
+function selectRetirementStatus(enrolled){
+  f_retirementValue = enrolled ? 'enrolled' : 'not_enrolled';
+  document.getElementById('retEnrolledBtn').classList.toggle('active', enrolled);
+  document.getElementById('retNotEnrolledBtn').classList.toggle('active', !enrolled);
 }
 
 // Run on load — in production, wait for backend to return Finch data before calling this
