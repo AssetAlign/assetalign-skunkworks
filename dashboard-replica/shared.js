@@ -68,18 +68,25 @@ function aaIsPersistentMode() {
 // have, not a fake confirmation. Navigates to the bare pathname (no query
 // string) so a cleared session doesn't immediately get repopulated from
 // old URL params still sitting in the address bar.
+const AA_SIGNED_OUT_KEY = 'aa_signed_out';
 // SKUNKWORKS -- real fix, 2026-09-13, per Alex: "when someone logs them
 // out, it should bring them to a screen that says they successfully
-// logged out." It used to just redirect to the bare dashboard path, which
-// immediately re-defaults to a fresh fake "Jordan" session and restarts
-// the welcome tutorial -- reads exactly like still being logged in as
-// someone, not like a real logout happened. Now redirects with a
-// ?logged_out=1 marker; the dashboard's own init (see its own dev note
-// near applyPersonalization()) checks for it and shows a real confirmation
-// screen instead of personalizing/starting the tour.
+// logged out," then, once that worked: "i think the goal is i kind of
+// have full functionality.. so it should allow me to log back in.. so i
+// can start to simulate what a month or so looks like." Real logout
+// isn't the same thing as deleting an account -- this used to actually
+// erase aa_persistent_session, so there was no way back to the same
+// profile/favorites/progress once "logged out," which defeats the whole
+// point of a persistent instance meant to be used repeatedly over time.
+// In persistent mode, logout now only sets a signed-out FLAG and leaves
+// the real data untouched; aaLogBackIn() clears that flag and returns to
+// the same account exactly as it was. A shared/normal demo session has
+// no real account to log back into, so that path keeps its original,
+// actually-destructive behavior (sessionStorage genuinely cleared) --
+// unaffected by any of this.
 function aaLogout() {
   try {
-    if (aaIsPersistentMode()) localStorage.removeItem(AA_PERSISTENT_SESSION_KEY);
+    if (aaIsPersistentMode()) localStorage.setItem(AA_SIGNED_OUT_KEY, '1');
     else sessionStorage.removeItem(AA_SESSION_KEY);
   } catch (e) {}
   // SKUNKWORKS -- real fix, 2026-09-13, per Alex, still seeing the old
@@ -93,24 +100,51 @@ function aaLogout() {
   // possibly have a stale cached response for it.
   window.location.href = window.location.pathname + '?logged_out=' + Date.now();
 }
+// The real "log back in" -- only meaningful in persistent mode (a normal
+// shared-demo session has nothing left to return to once logged out).
+// Clears the signed-out flag and reloads; the dashboard's own guard (see
+// its dev note near applyPersonalization()) then sees a normal, still-
+// intact persistent session and personalizes exactly as before logout.
+function aaLogBackIn() {
+  try { localStorage.removeItem(AA_SIGNED_OUT_KEY); } catch (e) {}
+  window.location.href = window.location.pathname + '?t=' + Date.now();
+}
+// The actual destructive action -- real account deletion, kept as a
+// clearly separate, secondary choice (see aaShowLoggedOutScreen()) so it
+// can never be reached by the same click that a real "log back in" is.
+function aaStartOverFresh() {
+  try {
+    localStorage.removeItem(AA_SIGNED_OUT_KEY);
+    localStorage.removeItem(AA_PERSISTENT_SESSION_KEY);
+  } catch (e) {}
+  const base = aaIsPersistentMode() ? '../onboarding-replica/?alex=1' : '../onboarding-replica/';
+  window.location.href = base + (base.indexOf('?') === -1 ? '?' : '&') + 't=' + Date.now();
+}
 // Reusable, same injected-overlay pattern as aaInjectDemoStop()/
-// aaShowDemoStop() above. Offers the real ?alex=1 link back into
-// onboarding when persistent mode was active (so someone's own personal
-// instance sends them to redo their real profile, not a generic demo
-// restart) and the plain onboarding link otherwise.
+// aaShowDemoStop() above. Persistent mode gets two real, visually distinct
+// choices (a primary "Log back in," a muted secondary "start over as
+// someone new" that's the only path that actually deletes data); a normal
+// shared-demo session has nothing to log back into, so it only ever
+// offers the restart link.
 function aaShowLoggedOutScreen() {
   const existing = document.getElementById('aaLoggedOutModal');
   if (existing) { existing.classList.add('show'); aaLockBodyScroll(); return; }
-  const restartHref = aaIsPersistentMode() ? '../onboarding-replica/?alex=1' : '../onboarding-replica/';
   const modal = document.createElement('div');
   modal.className = 'disclosure-overlay';
   modal.id = 'aaLoggedOutModal';
+  const actionsHtml = aaIsPersistentMode()
+    ? '<button class="btn-run-quotes" style="width:100%;margin-bottom:14px;" onclick="aaLogBackIn()">Log back in →</button>' +
+      '<a href="#" onclick="event.preventDefault(); aaStartOverFresh();" style="font-size:12px;color:var(--muted,#999);">Start over as someone new instead</a>'
+    : '<button class="btn-run-quotes" style="width:100%;" onclick="aaStartOverFresh()">Start again →</button>';
+  const bodyText = aaIsPersistentMode()
+    ? 'Your profile, favorites, and progress are still saved on this browser.'
+    : 'Your session data has been cleared from this browser.';
   modal.innerHTML = '<div class="disclosure-box" style="max-width:400px;height:auto;">' +
     '<div class="disclosure-body" style="padding:36px 28px;text-align:center;">' +
     '<div style="font-size:32px;margin-bottom:10px;">✓</div>' +
     '<div style="font-size:16px;font-weight:700;color:var(--navy,#0d1f33);margin-bottom:8px;">You’ve been logged out.</div>' +
-    '<div style="font-size:13px;color:var(--muted,#666);line-height:1.6;margin-bottom:22px;">Your session data has been cleared from this browser.</div>' +
-    '<button class="btn-run-quotes" style="width:100%;" onclick="window.location.href=\'' + restartHref + '\'">Start again →</button>' +
+    '<div style="font-size:13px;color:var(--muted,#666);line-height:1.6;margin-bottom:22px;">' + bodyText + '</div>' +
+    actionsHtml +
     '</div></div>';
   document.body.appendChild(modal);
   modal.classList.add('show');
