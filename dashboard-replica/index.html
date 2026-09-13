@@ -1838,7 +1838,20 @@
         <div class="dash-top-row">
           <div>
             <div class="eyebrow">Your Goal</div>
-            <div class="dash-welcome">Welcome back, <em id="dashWelcomeName">Jordan.</em></div>
+            <!-- SKUNKWORKS -- real bug, 2026-09-13, per Alex, found via the
+                 off-ramp: "once they say im not ready for a plan yet.. it
+                 takes us to the dashboard.. and it says Welcome Back
+                 Sarah.. but this is the first time we are seeing it." Not
+                 actually off-ramp-specific -- "Welcome back" was hardcoded
+                 here regardless of path, so it was equally wrong on every
+                 first-time arrival from the normal advisor-booking flow
+                 too, just never caught before. There's no real login/
+                 account system in this prototype suite to know if someone
+                 has actually been here before, so "back" was never a claim
+                 this page could honestly make -- dropped it rather than
+                 building real first-visit-vs-returning tracking for a
+                 claim that doesn't need a visit count at all. -->
+            <div class="dash-welcome">Welcome, <em id="dashWelcomeName">Jordan.</em></div>
           </div>
           <div class="dash-credits-count">
             <div class="dash-credits-label">Align Credits</div>
