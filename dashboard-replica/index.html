@@ -1422,6 +1422,12 @@
     .vesting-row:last-child { border-bottom: none; }
     .vesting-pts { font-weight: 700; color: #15803d; white-space: nowrap; margin-left: 8px; }
     .vesting-pts.spend { color: var(--navy); }
+    /* SKUNKWORKS -- vesting reintroduced, 2026-09-13: a still-vesting
+       credit's history row -- amber "Pending" instead of a green "+N", plus
+       a small "available in N days" sub-line, so it never reads as
+       already-spendable. */
+    .vesting-pts.pending { color: #b45309; }
+    .vesting-row-sub { display: block; font-size: 10.5px; color: var(--muted); font-weight: 400; margin-top: 1px; }
     /* 2026-09-05, per Alex: "we have people now in the right spot ready to
        do things.. we should allow them to click right into the workflow."
        Ways-to-Earn rows that have a real, working destination become
@@ -2537,13 +2543,14 @@
                    vesting stuff. i am not wild about it. i don't think
                    people are goig to game this thing." Dropped the whole
                    90-day-delay "Vesting Schedule" card that used to sit
-                   here (previously justified as an anti-gaming measure —
-                   see the 2026-09-03 note further down in this file's
-                   history if that reasoning ever needs revisiting). Every
-                   credit is usable the moment it's earned now, full stop;
-                   kept one honest line about that rather than silently
-                   dropping the topic. -->
-              <div style="font-size:11px; color:var(--muted); margin-top:10px; line-height:1.5;">Every credit is available to spend the moment you earn it — no waiting period.</div>
+                   here. SKUNKWORKS -- vesting reintroduced 2026-09-13,
+                   per Alex: "yes and build it," reviving the original
+                   2026-09-03 rule once the credit-economics pass made the
+                   risk concrete (some credits are backed by real,
+                   confirmed partner revenue; others aren't yet) -- see
+                   shared.js's AA_VESTING_DAYS dev note for the full
+                   reasoning. -->
+              <div style="font-size:11px; color:var(--muted); margin-top:10px; line-height:1.5;">Credits tied to a real partner transaction (like a completed insurance quote) are available the moment you earn them. Other credits vest 90 days after being earned — you'll see them as "Pending" in your history until then.</div>
             </div>
           </div>
         </div>
@@ -2685,7 +2692,7 @@
       <p>AssetAlign is a <strong>financial wellness enablement platform</strong>, operated by ABTW Corporation, which is registered as an investment adviser with the Massachusetts Securities Division. We connect you with the right financial solutions, efficiently — whether that's a vetted independent advisor or a trusted partner for insurance, estate planning, tax prep, or debt management. Advisors available through our platform are independent professionals, registered as investment advisers or broker-dealers in their own right; AssetAlign itself does not manage your investments or provide investment, legal, or tax advice directly.</p>
 
       <h4>Item 2. Align Credits</h4>
-      <p>Align Credits are a loyalty reward issued solely by AssetAlign. They carry no monetary value outside the AssetAlign platform, cannot be exchanged for cash, and may only be redeemed for services in the AssetAlign Exchange. Credits are available to use as soon as you earn them, with no waiting period, and are non-transferable.</p>
+      <p>Align Credits are a loyalty reward issued solely by AssetAlign. They carry no monetary value outside the AssetAlign platform, cannot be exchanged for cash, and may only be redeemed for services in the AssetAlign Exchange. Credits tied to a real partner transaction (like a completed insurance quote) are available to use the moment you earn them; other credits vest 90 days after being earned. Credits are non-transferable.</p>
       <p>Because you can earn and spend credits across different services, they may encourage you to try something you wouldn't otherwise — make each choice on its own merits, not your credit balance.</p>
 
       <h4>Item 3. Your Information</h4>
@@ -2730,7 +2737,7 @@
       <p>AssetAlign is a <strong>financial wellness enablement platform</strong>, operated by ABTW Corporation, which is registered as an investment adviser with the Massachusetts Securities Division. We connect you with the right financial solutions, efficiently — whether that's a vetted independent advisor or a trusted partner for insurance, estate planning, tax prep, or debt management. Advisors available through our platform are independent professionals, registered as investment advisers or broker-dealers in their own right; AssetAlign itself does not manage your investments or provide investment, legal, or tax advice directly.</p>
 
       <h4>Item 2. Align Credits</h4>
-      <p>Align Credits are a loyalty reward issued solely by AssetAlign. They carry no monetary value outside the AssetAlign platform, cannot be exchanged for cash, and may only be redeemed for services in the AssetAlign Exchange. Credits are available to use as soon as you earn them, with no waiting period, and are non-transferable.</p>
+      <p>Align Credits are a loyalty reward issued solely by AssetAlign. They carry no monetary value outside the AssetAlign platform, cannot be exchanged for cash, and may only be redeemed for services in the AssetAlign Exchange. Credits tied to a real partner transaction (like a completed insurance quote) are available to use the moment you earn them; other credits vest 90 days after being earned. Credits are non-transferable.</p>
       <p>Because you can earn and spend credits across different services, they may encourage you to try something you wouldn't otherwise — make each choice on its own merits, not your credit balance.</p>
 
       <h4>Item 3. Your Information</h4>
@@ -2782,7 +2789,7 @@
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<script src="shared.js?v=20260913e"></script>
+<script src="shared.js?v=20260913f"></script>
 <script>
   // ═══════════════════════════════════════════════════════════════
   // PERSONALIZATION FROM ONBOARDING HAND-OFF
@@ -3391,6 +3398,16 @@
   // list explained. Every row below now has a real, matching award
   // somewhere in the code -- add a row here the same day a new earn
   // event ships, not after.
+  // SKUNKWORKS -- vesting reintroduced, 2026-09-13, per Alex: "yes and
+  // build it." earnRow() checks aaGetPendingCredit(source) -- if that
+  // award is still in the vesting queue, shows a "Pending — available in
+  // N days" row instead of a spendable "+5", so history is honest about
+  // WHEN a credit actually became usable, not just that it was earned.
+  function earnRow(source, label, amount) {
+    const pending = aaGetPendingCredit(source);
+    if (pending) return { label: label, pts: 'Pending', sub: aaDaysUntil(pending.maturesAt), earn: true, pendingRow: true };
+    return { label: label, pts: '+' + amount, earn: true };
+  }
   function renderCreditsHistory() {
     const list = document.getElementById('cdmHistoryList');
     if (!list) return;
@@ -3398,16 +3415,16 @@
     const savedAccounts = getSavedAccounts();
     const rows = [];
     rows.push({ label: 'Welcome bonus', pts: '+25', earn: true });
-    if (savedAccounts.length > 0) rows.push({ label: 'Set up My Financial Life', pts: '+5', earn: true });
-    if (savedAccounts.some(function (a) { return a.category === 'homeinsurance'; })) rows.push({ label: 'Added to Rate Watch', pts: '+5', earn: true });
+    if (savedAccounts.length > 0) rows.push(earnRow('financiallife', 'Set up My Financial Life', 5));
+    if (savedAccounts.some(function (a) { return a.category === 'homeinsurance'; })) rows.push(earnRow('ratewatch', 'Added to Rate Watch', 5));
     if (session.autoInsuranceDone) rows.push({ label: 'The Zebra — auto insurance info submitted', pts: '+10', earn: true });
-    if (session.lifeQuoteDone) rows.push({ label: 'PolicyGenius — term life quote submitted', pts: '+5', earn: true });
-    if (session.beneficiaryAuditDone) rows.push({ label: 'Beneficiary audit started', pts: '+5', earn: true });
+    if (session.lifeQuoteDone) rows.push(earnRow('lifequote', 'PolicyGenius — term life quote submitted', 5));
+    if (session.beneficiaryAuditDone) rows.push(earnRow('beneficiary', 'Beneficiary audit started', 5));
     if (session.estatePlanningDone) rows.push({ label: 'MyGoodTrust — Will & Trust Setup', pts: '-139', earn: false });
     if (session.estateRenewalDone) rows.push({ label: 'MyGoodTrust — Year 2 renewal', pts: '-39', earn: false });
     if (session.lifeInsurancePaid) rows.push({ label: 'Life Insurance — annual payment', pts: '-480', earn: false });
     list.innerHTML = rows.map(function (r) {
-      return '<div class="vesting-row"><span>' + r.label + '</span><span class="vesting-pts' + (r.earn ? '' : ' spend') + '">' + r.pts + '</span></div>';
+      return '<div class="vesting-row' + (r.pendingRow ? ' vesting-row-pending' : '') + '"><span>' + r.label + (r.sub ? '<span class="vesting-row-sub">' + r.sub + '</span>' : '') + '</span><span class="vesting-pts' + (r.earn ? '' : ' spend') + (r.pendingRow ? ' pending' : '') + '">' + r.pts + '</span></div>';
     }).join('');
   }
   function closeCreditsDetail() {
@@ -3925,8 +3942,14 @@
     // 25." Neither of these two awards has a matching confirmed revenue
     // figure the way Zebra's real $30/quote does (see acceptComparison()/
     // submitNudge()'s own dev notes, both still +10) -- cut from 10 to 5.
-    if (isFirstAccountEver) addLiveCredits(5);
-    if (category === 'homeinsurance' && !hadHomeInsuranceAlready) addLiveCredits(5);
+    // SKUNKWORKS -- vesting reintroduced, 2026-09-13, per Alex: "yes and
+    // build it." Neither of these has confirmed revenue behind it (see
+    // shared.js's own dev note on AA_VESTING_DAYS) -- queued instead of
+    // awarded immediately; aaMaturePendingCredits() (called from
+    // aaResolveSession() on every real page load) moves it into real,
+    // spendable credits after 90 days.
+    if (isFirstAccountEver) aaQueuePendingCredit('financiallife', 'Set up My Financial Life', 5);
+    if (category === 'homeinsurance' && !hadHomeInsuranceAlready) aaQueuePendingCredit('ratewatch', 'Added to Rate Watch', 5);
     if (typeof renderEarnRail === 'function') renderEarnRail();
   }
   function toggleCategoryNA(key, checked) {
