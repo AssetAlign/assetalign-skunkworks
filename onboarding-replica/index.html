@@ -508,7 +508,14 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
            (not just the employer name) since "gave you a gift" doesn't
            fit the "That's why X has made this available" sentence shape —
            see initGiftMode() below for the ?gift=1 swap. -->
-      <p id="s1IntroLine" style="font-size:13px;color:#1a1a1a;margin-bottom:6px;">78% of employees lose sleep over financial stress. That's why <span id="s1EmployerName">your employer</span> has made AssetAlign available to you.</p>
+      <!-- SKUNKWORKS -- messaging test, 2026-09-13, per Alex: "im not sure
+           we are getting anything out of that statistic [78% lose sleep].
+           i think we can probably do away with that and just highlight the
+           other things." Dropped the stat-as-justification opener; the very
+           next paragraph already carries the real "highlight" (every
+           provider, aggregated, plus Align Credits), so this line now just
+           states the plain fact and lets that paragraph do the work. -->
+      <p id="s1IntroLine" style="font-size:13px;color:#1a1a1a;margin-bottom:6px;"><span id="s1EmployerName">Your employer</span> has made AssetAlign available to you.</p>
       <!-- 2026-09-06, per Alex: "include it into a screen in the
            beginning.. just have it be additive" — the Earn/Grow/Spend
            framing already used on the real dashboard's "How Align Credits
@@ -518,20 +525,18 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
       <p style="font-size:12px;color:#1a1a1a;margin-bottom:4px;">Insurance, investments, an advisor — usually scattered across a dozen logins. We bring every provider you use into one place, and reward you with Align Credits along the way. Unlike airline miles or credit card points, where 100,000 might get you $50, every Align Credit is worth a real $1 toward advice, insurance, tax prep, and more. <span id="s1InfoLoadedNote">Your info's already loaded — take the next 2 minutes to change your financial future.</span></p>
       <p id="s1EmployerNote" style="font-size:11px;color:#aaa;margin-bottom:0;">Your plan is already covered by your employer — it's completely up to you whether you choose to work with an advisor. Your employer never sees your information.</p>
       <button class="btn-p" onclick="go(2)">Verify My Info &amp; Get Started →</button>
-      <!-- 2026-09-08, per Alex: "one of the first things that comes up says
-           78% of employees and than later it says 73%?" — both are real,
-           separately-sourced stats about different specific claims (this
-           one: losing sleep over financial stress; S6's 73%: money being
-           the #1 stress source) — American Academy of Sleep Medicine, 2025
-           vs. Bank of America Employee Financial Wellness Study, 2025. The
-           actual bug was that only S6 showed its citation — this one had
-           none, so two different real numbers about "employees" and
-           "stress" looked like the same claim contradicting itself. Added
-           the missing citation rather than changing the stat. -->
-      <!-- 2026-09-09 — GIFT MODE hides this: initGiftMode() replaces the
-           78%-stat sentence above with the gift-invite line, so this
-           citation would otherwise dangle with no stat left to support. -->
-      <div class="citation" id="s1Citation">Source: American Academy of Sleep Medicine, 2025.</div>
+      <!-- SKUNKWORKS -- 2026-09-13: removed the 78%-lose-sleep stat (see
+           s1IntroLine's dev note above) along with the citation that
+           supported it, per Alex's call that it wasn't earning its real
+           estate. NOTE: S6's stat-card still opens with this exact same
+           78% figure (its own citation is on S6, unaffected by this) --
+           left alone since Alex's feedback was specifically about this
+           screen; worth asking him directly whether S6 should also drop
+           it or gets a replacement opener, since it's the same stat, not
+           yet a decision I've made unilaterally. -->
+      <!-- id="s1Citation" kept as an element initGiftMode() still safely
+           null-checks/hides -- no citation text to show by default now. -->
+      <div class="citation" id="s1Citation" style="display:none;"></div>
     </div>
   </div>
 
