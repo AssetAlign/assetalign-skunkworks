@@ -895,6 +895,13 @@
     .accounts-tile-status-empty { color: var(--muted); background: var(--white); border: 1px dashed var(--border); }
     .accounts-tile-status-linked { color: #16a34a; background: #eaf7ee; }
     .accounts-tile-status-na { color: var(--muted); background: var(--white); }
+    /* SKUNKWORKS -- Car Insurance Rate Check, 2026-09-13: red = overpaying,
+       green = a fair rate, blue = notably below the estimate (informational,
+       not an alert -- kept visually calmer than the red). */
+    .accounts-tile-rate-badge { font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 99px; margin-top: 4px; }
+    .accounts-tile-rate-over { color: #b91c1c; background: #fdecec; }
+    .accounts-tile-rate-fair { color: #16a34a; background: #eaf7ee; }
+    .accounts-tile-rate-under { color: #1d4ed8; background: #eaf1fd; }
     /* 2026-09-07, per Alex: "there should be a plus on the bottom that says
        add one of my partners" — bridges My Financial Life (self-tracked
        accounts) to the Marketplace's real vetted partners (Kevin/Movement
@@ -3514,20 +3521,99 @@
       { name: 'Citi', domain: 'citi.com' }, { name: 'Bank of America', domain: 'bankofamerica.com' },
     ] },
   ];
+
+  // ═══════════════════════════════════════════════════════════════════
+  // SKUNKWORKS -- CAR INSURANCE RATE CHECK, 2026-09-13, per Alex: "cross
+  // reference their zip code, their age, and what they put on the monthly
+  // number and estimate if they are over paying or underpaying." Real,
+  // sourced 2026 figures (all cited below), not invented -- but honestly
+  // scoped to what public data actually supports: age and a 3-tier STATE
+  // signal (not literal zip-level rating, which needs a licensed insurer
+  // rating engine -- exactly the gap the real Plaid-based workflow on the
+  // idea backlog is meant to eventually close for real; see
+  // project_assetalign_idea_backlog memory). State is read from the
+  // member's own on-file session.state (already captured during
+  // onboarding) rather than asking for zip again here.
+  //   - National average full coverage: $210/mo (NerdWallet's April 2026
+  //     car insurance cost analysis put the figure at $208/mo; MoneyGeek's
+  //     2026 age-rate data put it near $216-243/mo -- $210 is a round,
+  //     defensible middle of real published 2026 figures, not a specific
+  //     claim tighter than the underlying data actually supports).
+  //   - State tier, from ValuePenguin/Insurance.com's 2026 state rankings:
+  //     the 5 most expensive states (NV $335/mo, LA $373/mo, FL $339/mo,
+  //     CT $323/mo, DE) and 4 cheapest (VT $128/mo, WY $96/mo, NH $127/mo,
+  //     ME $142/mo) are real, named, sourced states -- everyone else
+  //     defaults to the national-average tier rather than guessing at
+  //     unconfirmed states.
+  //   - Age multiplier, from MoneyGeek's 2026 rates-by-age data: full
+  //     coverage drops by more than half between 16 and 26, holds flat
+  //     26-64, then rises modestly for seniors (~$2,742/yr at 75).
+  // Always disclosed as an estimate in the UI -- this compares one
+  // self-reported number against a national/age/state-tier model, not a
+  // real quote.
+  const CAR_INSURANCE_NATIONAL_AVG_MONTHLY = 210;
+  const CAR_INSURANCE_HIGH_COST_STATES = ['NV', 'LA', 'FL', 'CT', 'DE'];
+  const CAR_INSURANCE_LOW_COST_STATES = ['VT', 'WY', 'NH', 'ME'];
+  function carInsuranceStateMultiplier(state) {
+    if (!state) return 1;
+    state = state.toUpperCase();
+    if (CAR_INSURANCE_HIGH_COST_STATES.indexOf(state) !== -1) return 1.5;
+    if (CAR_INSURANCE_LOW_COST_STATES.indexOf(state) !== -1) return 0.65;
+    return 1;
+  }
+  function carInsuranceAgeMultiplier(age) {
+    age = parseInt(age, 10);
+    if (isNaN(age)) return 1;
+    if (age < 20) return 2.5;
+    if (age <= 25) return 1.3;
+    if (age >= 65) return 1.15;
+    return 1;
+  }
+  // Returns {estimate, status} -- status is 'over' (paying notably more
+  // than the model expects — flagged red), 'under' (notably less — a
+  // neutral, informational blue, not necessarily a problem), or 'fair'
+  // (within a normal band of the estimate — green). A 15% band on each
+  // side absorbs the real, normal variation this model can't capture
+  // (specific driving record, coverage limits, carrier, discounts) so a
+  // reasonably-priced policy doesn't get flagged just for not landing on
+  // an exact number.
+  function estimateAutoInsuranceRateStatus(monthlyRate, age, state) {
+    const rate = parseFloat(String(monthlyRate).replace(/[^0-9.]/g, ''));
+    if (!rate || rate <= 0) return null;
+    const estimate = Math.round(CAR_INSURANCE_NATIONAL_AVG_MONTHLY * carInsuranceAgeMultiplier(age) * carInsuranceStateMultiplier(state));
+    const ratio = rate / estimate;
+    const status = ratio > 1.15 ? 'over' : ratio < 0.85 ? 'under' : 'fair';
+    return { estimate: estimate, status: status };
+  }
   function accountFaviconUrl(domain) {
     return 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(domain) + '&sz=64';
   }
+  // SKUNKWORKS -- real fix, 2026-09-13: these four functions wrote straight
+  // to sessionStorage, bypassing aaLoadSession()/aaSaveSession() entirely
+  // -- meaning My Financial Life accounts (bank, mortgage, car insurance,
+  // etc.) never actually persisted in Alex's own ?alex=1 personal instance
+  // the way the rest of the session does, since sessionStorage always
+  // resets. Now branches the same way shared.js's own aaLoadSession()
+  // does, so this data survives exactly as long as everything else does.
   function getSavedAccounts() {
-    try { return JSON.parse(sessionStorage.getItem('aa_saved_accounts') || '[]'); } catch (e) { return []; }
+    try {
+      const store = aaIsPersistentMode() ? localStorage : sessionStorage;
+      return JSON.parse(store.getItem('aa_saved_accounts') || '[]');
+    } catch (e) { return []; }
   }
   function setSavedAccounts(list) {
-    sessionStorage.setItem('aa_saved_accounts', JSON.stringify(list));
+    const store = aaIsPersistentMode() ? localStorage : sessionStorage;
+    store.setItem('aa_saved_accounts', JSON.stringify(list));
   }
   function getAccountNAMap() {
-    try { return JSON.parse(sessionStorage.getItem('aa_account_na') || '{}'); } catch (e) { return {}; }
+    try {
+      const store = aaIsPersistentMode() ? localStorage : sessionStorage;
+      return JSON.parse(store.getItem('aa_account_na') || '{}');
+    } catch (e) { return {}; }
   }
   function setAccountNAMap(map) {
-    sessionStorage.setItem('aa_account_na', JSON.stringify(map));
+    const store = aaIsPersistentMode() ? localStorage : sessionStorage;
+    store.setItem('aa_account_na', JSON.stringify(map));
   }
   function normalizeAccountUrl(input) {
     input = (input || '').trim();
@@ -3556,7 +3642,12 @@
   // that array and re-renders.
   function getTileOrder() {
     let order;
-    try { order = JSON.parse(sessionStorage.getItem('aa_tile_order') || 'null'); } catch (e) { order = null; }
+    // SKUNKWORKS -- real fix, 2026-09-13: same persistence bug/fix as
+    // getSavedAccounts() above -- see its own dev note.
+    try {
+      const store = aaIsPersistentMode() ? localStorage : sessionStorage;
+      order = JSON.parse(store.getItem('aa_tile_order') || 'null');
+    } catch (e) { order = null; }
     const allKeys = ACCOUNT_CATEGORIES.map(function (c) { return c.key; });
     if (!Array.isArray(order)) return allKeys;
     // Guard against a stored order missing/adding keys (e.g. after a code
@@ -3567,7 +3658,8 @@
     return valid;
   }
   function setTileOrder(order) {
-    sessionStorage.setItem('aa_tile_order', JSON.stringify(order));
+    const store = aaIsPersistentMode() ? localStorage : sessionStorage;
+    store.setItem('aa_tile_order', JSON.stringify(order));
   }
   let draggedTileKey = null;
   function renderAccountsShelf() {
@@ -3618,11 +3710,25 @@
       const editBtn = linksDirect
         ? '<button type="button" class="accounts-tile-edit" onclick="event.stopPropagation();openAccountsScreen(\'' + cat.key + '\')" aria-label="Edit ' + cat.tileLabel.replace(/"/g, '&quot;') + '" title="Edit">✏️</button>'
         : '';
+      // SKUNKWORKS -- Car Insurance Rate Check, 2026-09-13, per Alex: "as
+      // it then lives in the right side of my financial life, there
+      // should be a way to identify it.. if you are overpaying do we have
+      // it highlighted in red, and if not blue or green." Red = paying
+      // notably more than estimateAutoInsuranceRateStatus()'s model
+      // expects; green = within a normal band of it (a fair rate); blue =
+      // notably less (flagged neutrally -- not a problem, just
+      // informational, so it doesn't read as an alert the way red does).
+      const rateBadge = (single && single.category === 'autoinsurance' && single.rateStatus)
+        ? '<span class="accounts-tile-rate-badge accounts-tile-rate-' + single.rateStatus + '">' +
+          (single.rateStatus === 'over' ? 'Overpaying' : single.rateStatus === 'under' ? 'Below average' : 'Fair rate') +
+          '</span>'
+        : '';
       return '<div class="accounts-cat-tile" draggable="true" data-key="' + cat.key + '" onclick="' + tileClick + '">' +
         editBtn +
         '<div class="accounts-tile-icon-wrap">' + iconInner + '</div>' +
         '<div class="accounts-tile-name">' + cat.tileLabel + '</div>' +
         status +
+        rateBadge +
         '</div>';
     }).join('');
     wireTileDragReorder(grid);
@@ -3768,9 +3874,13 @@
   function addAccountFromCategory(key, name, domain) {
     // SKUNKWORKS — Insurance Rate Watch: Home Insurance is the one category
     // that needs two extra questions (state + roughly what they pay) before
-    // saving, since that's the real signal Rate Watch matches against. Every
-    // other category keeps the original one-click save.
+    // saving, since that's the real signal Rate Watch matches against.
+    // SKUNKWORKS -- Car Insurance Rate Check, 2026-09-13: same idea, one
+    // question (roughly what they pay) -- see finalizeAutoInsuranceAccount()
+    // for the over/underpaying estimate this feeds. Every other category
+    // keeps the original one-click save.
     if (key === 'homeinsurance') { promptHomeInsuranceDetails(name, 'https://www.' + domain); return; }
+    if (key === 'autoinsurance') { promptAutoInsuranceDetails(name, 'https://www.' + domain); return; }
     addSavedAccount(key, name, 'https://www.' + domain);
     renderAccountsScreenBody();
   }
@@ -3799,6 +3909,7 @@
     const url = urlInput ? urlInput.value.trim() : '';
     if (!name) { showToast('Enter a name first.'); return; }
     if (key === 'homeinsurance') { promptHomeInsuranceDetails(name, url || null); return; }
+    if (key === 'autoinsurance') { promptAutoInsuranceDetails(name, url || null); return; }
     addSavedAccount(key, name, url || null);
     renderAccountsScreenBody();
   }
@@ -3862,6 +3973,46 @@
     const state = stateInput ? stateInput.value.trim().toUpperCase() : '';
     const estRateMonthly = rateInput ? rateInput.value.trim() : '';
     addSavedAccount('homeinsurance', name, url, { state: state || null, estRateMonthly: estRateMonthly || null });
+    renderAccountsScreenBody();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // SKUNKWORKS -- Car Insurance Rate Check, 2026-09-13. Same inline-reveal
+  // pattern as Home Insurance's promptHomeInsuranceDetails() just above --
+  // one real new question (roughly what they pay a month), explicitly
+  // optional and explicitly an estimate. Age comes from the member's own
+  // on-file session.age (captured during onboarding) and state from
+  // session.state -- neither asked again here. See
+  // estimateAutoInsuranceRateStatus()'s own dev note (near
+  // ACCOUNT_CATEGORIES) for the real, sourced model behind the over/
+  // underpaying read this produces.
+  // ═══════════════════════════════════════════════════════════════════
+  function promptAutoInsuranceDetails(name, url) {
+    const resultsEl = document.getElementById('accscreenResults_autoinsurance');
+    if (!resultsEl) return;
+    const searchInput = document.getElementById('accscreenSearch_autoinsurance');
+    if (searchInput) searchInput.value = name;
+    const nameArg = JSON.stringify(name).replace(/"/g, '&quot;');
+    const urlArg = JSON.stringify(url).replace(/"/g, '&quot;');
+    resultsEl.innerHTML = '<div class="accscreen-custom-form">' +
+      '<div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Adding ' + name.replace(/"/g, '&quot;') + '</div>' +
+      '<input type="text" class="accscreen-search-input" id="aiEstRate" placeholder="Roughly what do you pay a month? (optional)">' +
+      '<div style="font-size:11px;color:var(--muted);margin-top:4px;">We\'ll compare this to a national average for your age/state — just an estimate, never your actual policy figure.</div>' +
+      '<button type="button" class="btn-run-quotes" style="width:100%;margin-top:8px;" onclick="finalizeAutoInsuranceAccount(' + nameArg + ', ' + urlArg + ')">Add →</button>' +
+      '</div>';
+    const rateInput = document.getElementById('aiEstRate');
+    if (rateInput) rateInput.focus();
+  }
+  function finalizeAutoInsuranceAccount(name, url) {
+    const rateInput = document.getElementById('aiEstRate');
+    const estRateMonthly = rateInput ? rateInput.value.trim() : '';
+    const session = aaLoadSession();
+    const rateCheck = estRateMonthly ? estimateAutoInsuranceRateStatus(estRateMonthly, session.age, session.state) : null;
+    addSavedAccount('autoinsurance', name, url, {
+      estRateMonthly: estRateMonthly || null,
+      rateStatus: rateCheck ? rateCheck.status : null,
+      rateEstimate: rateCheck ? rateCheck.estimate : null,
+    });
     renderAccountsScreenBody();
   }
   // 2026-09-06 — now takes an optional category key so a tile click jumps
