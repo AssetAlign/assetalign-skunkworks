@@ -51,6 +51,12 @@ function aaIsPersistentMode(){
     return localStorage.getItem('aa_persistent_mode')==='1';
   }catch(e){return false;}
 }
+// Called eagerly, not just from inside buildBaseHandoffParams() at the very
+// end of the flow -- so the flag is set the instant ?alex=1 is opened, not
+// only once someone actually finishes/skips to the dashboard. Harmless to
+// call this early since it only ever writes when the URL literally has
+// ?alex=1, same as calling it late would.
+aaIsPersistentMode();
 // Tags the alert with who it actually was, when the link carries a real
 // name (every personalized test link — Alex's, Keiron's, etc. — already
 // includes ?first_name=&last_name=&email=). Falls back to "Unknown
