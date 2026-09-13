@@ -3273,7 +3273,20 @@
     document.getElementById('cpOutcomeDebt').textContent = fmtMoney(value5yr);
   }
 
-  applyPersonalization();
+  // SKUNKWORKS -- real fix, 2026-09-13, per Alex: "when someone logs them
+  // out, it should bring them to a screen that says they successfully
+  // logged out." aaLogout() (shared.js) now redirects here with
+  // ?logged_out=1 -- checked before personalization ever runs, so a real
+  // logout shows a genuine confirmation instead of a freshly re-defaulted
+  // "Jordan" dashboard that reads like still being logged in. aaIsLoggedOutLoad
+  // is also read by the tutorial's own DOMContentLoaded listener further
+  // down, so the welcome tour doesn't fire on top of this screen either.
+  const aaIsLoggedOutLoad = new URLSearchParams(window.location.search).get('logged_out') === '1';
+  if (aaIsLoggedOutLoad) {
+    aaShowLoggedOutScreen();
+  } else {
+    applyPersonalization();
+  }
 
   // ── CREDITS DETAIL MODAL — the "Credits" nav link + the "See your full
   // credit history & how to earn" link under the 3-box overview both open
@@ -5029,6 +5042,7 @@
   // someone who navigates away mid-tour shouldn't get it forced on them
   // again either.
   window.addEventListener('DOMContentLoaded', () => setTimeout(() => {
+    if (aaIsLoggedOutLoad) return;
     const session = aaLoadSession();
     if (session.tutorialSeen) return;
     aaSaveSession({ tutorialSeen: true });
