@@ -483,7 +483,7 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
            (not just the employer name) since "gave you a gift" doesn't
            fit the "That's why X has made this available" sentence shape —
            see initGiftMode() below for the ?gift=1 swap. -->
-      <p id="s1IntroLine" style="font-size:13px;color:#1a1a1a;margin-bottom:6px;">78% of employees lose sleep over financial stress. That's why <span id="s1EmployerName">your employer</span> has made AssetAlign available to you.</p>
+      <p id="s1IntroLine" style="font-size:13px;color:#1a1a1a;margin-bottom:6px;">Money decisions rarely feel simple — even when things are going fine. That's why <span id="s1EmployerName">your employer</span> has made AssetAlign available to you.</p>
       <!-- 2026-09-06, per Alex: "include it into a screen in the
            beginning.. just have it be additive" — the Earn/Grow/Spend
            framing already used on the real dashboard's "How Align Credits
@@ -493,15 +493,22 @@ body { background: #f5f5f3; font-family: -apple-system, BlinkMacSystemFont, 'Seg
       <p style="font-size:12px;color:#1a1a1a;margin-bottom:4px;">Insurance, investments, an advisor — usually scattered across a dozen logins. We bring every provider you use into one place, and reward you with Align Credits along the way. Unlike airline miles or credit card points, where 100,000 might get you $50, every Align Credit is worth a real $1 toward advice, insurance, tax prep, and more. <span id="s1InfoLoadedNote">Your info's already loaded — take the next 2 minutes to change your financial future.</span></p>
       <p id="s1EmployerNote" style="font-size:11px;color:#aaa;margin-bottom:0;">Your plan is already covered by your employer — it's completely up to you whether you choose to work with an advisor. Your employer never sees your information.</p>
       <button class="btn-p" onclick="go(2)">Verify My Info &amp; Get Started →</button>
-      <!-- SKUNKWORKS -- 2026-09-13: briefly removed this stat per an earlier
-           misread of Alex's feedback, then restored -- he clarified he
-           meant the 78% on the NEIGHBOR SLIDE (S6), not this screen: "i
-           don't mind us painting a picture in the first screen 'your home
-           base'.. we want to just have a way that people can identify with
-           the feeling.. if its a stat thats ok. i really meant i want the
-           78 [stat] off of the neighbor slide." So this stays as-is; see
-           S6 for the actual removal. -->
-      <div class="citation" id="s1Citation">Source: American Academy of Sleep Medicine, 2025.</div>
+      <!-- SKUNKWORKS -- 2026-09-13, final word on this line's several
+           rounds of back-and-forth: after briefly removing/restoring the
+           78%-lose-sleep stat here (see earlier git history), Alex's real
+           objection surfaced once he saw concrete stat-based rewrites:
+           "i don't know if i like any of those.. b/c they are sort of only
+           advertising to someone in a crisis. we want it to communicate to
+           everyone" -- then, asked directly what it'd look like with no
+           stat at all: "what if we didn't even have the 78.. how could we
+           word it." This line drops the stat entirely rather than trying a
+           4th stat-based rewrite -- states the universal condition plainly
+           ("even when things are going fine") instead of leaning on a
+           number or a crisis-specific moment. No citation needed anymore
+           since there's no cited claim left to support (see s1Citation
+           below, now empty/hidden rather than deleted, same as it was
+           between rounds -- initGiftMode() still safely null-checks it). -->
+      <div class="citation" id="s1Citation" style="display:none;"></div>
     </div>
   </div>
 
