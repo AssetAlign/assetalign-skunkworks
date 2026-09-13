@@ -275,6 +275,81 @@ function aaInitFavoriteButtons() {
 // defaults. goalKnown tracks whether a real ?goal= was EVER supplied this
 // session (not just "is goal set" — it's always set, defaulting to 'home')
 // since the Marketplace auto-highlight needs that real/defaulted distinction.
+//
+// ═══════════════════════════════════════════════════════════════════════
+// VESTING -- reintroduced 2026-09-13, per Alex: "yes and build it,"
+// reviving the original two-tier rule from 2026-09-03 (removed 2026-09-04,
+// then reconsidered same day as the credit-economics pass that split
+// earn events into revenue-confirmed vs. pure-cost -- see
+// reference_assetalign_credit_economics memory for the full history).
+// Rule: credits backed by CONFIRMED real revenue today (The Zebra's real
+// $30/quote; the welcome bonus, kept immediate per Alex's own reasoning
+// that delaying the very first touchpoint would undercut the reason it
+// exists) stay exactly as they've always worked -- addLiveCredits()
+// straight into session.credits, spendable the instant they're earned.
+// Everything else that was cut from 10 to 5 in that same pass (Set up My
+// Financial Life, Add to Rate Watch, the PolicyGenius life quote,
+// Beneficiary audit) is "pure cost, no revenue behind it yet" -- those go
+// through aaQueuePendingCredit() instead of addLiveCredits() at their
+// real award site, sit in session.pendingCredits until AA_VESTING_DAYS
+// pass, then aaMaturePendingCredits() (called from aaResolveSession()
+// itself, so every real page load checks) moves the matured amount into
+// session.credits for real. `source` is a stable per-award-type key (not
+// the display label) so aaGetPendingCredit() can look up "is THIS
+// specific award still pending" independent of copy changes.
+// ═══════════════════════════════════════════════════════════════════════
+const AA_VESTING_DAYS = 90;
+function aaQueuePendingCredit(source, label, amount) {
+  const session = aaLoadSession();
+  const queue = Array.isArray(session.pendingCredits) ? session.pendingCredits.slice() : [];
+  // Never queue the same source twice (e.g. re-opening a form that was
+  // already submitted) -- matches the one-time-award guards already used
+  // at each real call site, just defensive here too.
+  if (queue.some(function (e) { return e.source === source; })) return;
+  queue.push({
+    source: source,
+    label: label,
+    amount: amount,
+    earnedAt: Date.now(),
+    maturesAt: Date.now() + AA_VESTING_DAYS * 24 * 60 * 60 * 1000,
+  });
+  aaSaveSession({ pendingCredits: queue });
+}
+function aaGetPendingCredit(source) {
+  const session = aaLoadSession();
+  const queue = Array.isArray(session.pendingCredits) ? session.pendingCredits : [];
+  return queue.find(function (e) { return e.source === source; }) || null;
+}
+// Returns the total amount just matured (0 if nothing was due) so a
+// caller can decide whether to refresh a visible credits number/show a
+// toast. Idempotent -- safe to call on every page load.
+function aaMaturePendingCredits() {
+  const session = aaLoadSession();
+  const queue = Array.isArray(session.pendingCredits) ? session.pendingCredits : [];
+  if (!queue.length) return 0;
+  const now = Date.now();
+  const stillPending = [];
+  let maturedTotal = 0;
+  queue.forEach(function (entry) {
+    if (now >= entry.maturesAt) maturedTotal += entry.amount;
+    else stillPending.push(entry);
+  });
+  if (maturedTotal > 0) {
+    aaSaveSession({ credits: (parseInt(session.credits, 10) || 0) + maturedTotal, pendingCredits: stillPending });
+  } else if (stillPending.length !== queue.length) {
+    aaSaveSession({ pendingCredits: stillPending });
+  }
+  return maturedTotal;
+}
+// Plain-language "available in N days"/"available tomorrow"/"available
+// today" -- used by the Credits Detail Modal's history list.
+function aaDaysUntil(ts) {
+  const ms = ts - Date.now();
+  const days = Math.ceil(ms / (24 * 60 * 60 * 1000));
+  if (days <= 0) return 'available today';
+  if (days === 1) return 'available tomorrow';
+  return 'available in ' + days + ' days';
+}
 function aaResolveSession() {
   const params = new URLSearchParams(window.location.search);
   const patch = {};
@@ -362,6 +437,14 @@ function aaResolveSession() {
   if (session.advisor_name === undefined && !session.advisor_skipped) defaults.advisor_name = 'Michael Torres';
   if (session.advisor_creds === undefined && !session.advisor_skipped) defaults.advisor_creds = 'CFP®';
   if (Object.keys(defaults).length) session = aaSaveSession(defaults);
+  // SKUNKWORKS -- vesting reintroduced, 2026-09-13, per Alex: "yes and
+  // build it" (reviving the original 2026-09-03 two-tier rule, removed
+  // 2026-09-04 -- see reference_assetalign_credit_economics memory for
+  // the full history). Runs on every real page load via this same
+  // central function, so a matured credit shows up the next time anyone
+  // looks, without needing separate wiring per page.
+  const maturedAmount = aaMaturePendingCredits();
+  if (maturedAmount > 0) session = aaLoadSession();
   return session;
 }
 
