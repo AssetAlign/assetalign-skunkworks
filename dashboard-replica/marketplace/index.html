@@ -3014,6 +3014,7 @@
     if (session.autoInsuranceDone) rows.push({ label: 'The Zebra — auto insurance info submitted', pts: '+10', earn: true });
     if (session.lifeQuoteDone) rows.push(earnRow('lifequote', 'PolicyGenius — term life quote submitted', 5));
     if (session.beneficiaryAuditDone) rows.push(earnRow('beneficiary', 'Beneficiary audit started', 5));
+    if (session.refiLeadSent) rows.push(earnRow('refilead', 'Mortgage refinance lead sent to Kevin', 5));
     if (session.estatePlanningDone) rows.push({ label: 'MyGoodTrust — Will & Trust Setup', pts: '-139', earn: false });
     if (session.estateRenewalDone) rows.push({ label: 'MyGoodTrust — Year 2 renewal', pts: '-39', earn: false });
     if (session.lifeInsurancePaid) rows.push({ label: 'Life Insurance — annual payment', pts: '-480', earn: false });
@@ -3726,7 +3727,20 @@
     if (savings > 15) {
       result.style.background = 'var(--yellow-bg)';
       result.style.border = '1px solid var(--yellow-dark)';
-      result.innerHTML = 'At today\'s average rate (' + CURRENT_AVG_30YR_RATE + '%), your payment on this balance could be roughly <strong>$' + Math.round(newPayment).toLocaleString() + '/mo</strong> instead of <strong>$' + Math.round(currentPayment).toLocaleString() + '/mo</strong> — a potential savings of about <strong>$' + savings.toLocaleString() + '/mo</strong>. Worth a real conversation with one of our loan officers above.';
+      // SKUNKWORKS -- real fix, 2026-09-14, per Alex's own consultant-
+      // audit ask ("should we be monetizing anything... check the
+      // mortgage refi tool"): this used to just say "worth a real
+      // conversation with one of our loan officers above" and stop --
+      // no link, no lead sent, nothing tracked. A real savings finding is
+      // exactly the moment a real lead should go to Kevin, not a hint to
+      // scroll up and find him yourself. Reuses the same aaBuildMailto()
+      // pattern Kevin's own contact link already uses, folding the real
+      // numbers into the topic label so he gets a warm, informative lead
+      // instead of a cold "connected through marketplace" one.
+      const refiTopic = 'refinancing — currently at ' + rate + '% on about $' + Math.round(balance).toLocaleString() + ' remaining, roughly $' + savings.toLocaleString() + '/mo potential savings at today\'s ' + CURRENT_AVG_30YR_RATE + '% average';
+      const refiMailto = aaBuildMailto('kevin.byrne@movement.com', 'Kevin', refiTopic);
+      result.innerHTML = 'At today\'s average rate (' + CURRENT_AVG_30YR_RATE + '%), your payment on this balance could be roughly <strong>$' + Math.round(newPayment).toLocaleString() + '/mo</strong> instead of <strong>$' + Math.round(currentPayment).toLocaleString() + '/mo</strong> — a potential savings of about <strong>$' + savings.toLocaleString() + '/mo</strong>.' +
+        '<a href="' + refiMailto + '" onclick="markRefiLeadSent()" class="btn-run-quotes" style="display:block; text-align:center; text-decoration:none; margin-top:12px;">Email Kevin about refinancing →</a>';
     } else if (savings < -15) {
       result.style.background = '#f0fdf4';
       result.style.border = '1px solid #bbf7d0';
@@ -3736,6 +3750,23 @@
       result.style.border = '1px solid var(--border)';
       result.innerHTML = 'Your rate is already close to today\'s average (' + CURRENT_AVG_30YR_RATE + '%) — a refinance likely wouldn\'t save you much right now, but worth checking back if rates move.';
     }
+  }
+  // SKUNKWORKS -- real fix, 2026-09-14: the actual lead-tracking half of
+  // the "Email Kevin about refinancing" CTA above. One-time (same guard
+  // pattern as isFirstAccountEver/lifeQuoteDone elsewhere) so re-running
+  // the calculator and re-clicking doesn't farm credits. Queued, not
+  // immediate -- Movement Mortgage's compensation structure isn't
+  // finalized yet (see project_assetalign_movement_mortgage memory:
+  // "neither finalized," real RESPA MSA compliance risk flagged, not yet
+  // counsel-reviewed), so this is NOT treated as confirmed revenue the
+  // way The Zebra's real $30/quote is -- same 90-day vesting queue as
+  // the other not-yet-confirmed-revenue awards from the credit-economics
+  // pass (see shared.js's AA_VESTING_DAYS dev note).
+  function markRefiLeadSent() {
+    const session = aaLoadSession();
+    if (session.refiLeadSent) return;
+    aaSaveSession({ refiLeadSent: true });
+    aaQueuePendingCredit('refilead', 'Mortgage refinance lead sent to Kevin', 5);
   }
 
   // ── QUOTE FLOW ──
