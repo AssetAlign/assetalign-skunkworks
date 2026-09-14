@@ -3587,7 +3587,6 @@
   // -- kept as the same literal figure in both files rather than each
   // guessing its own number.
   const CURRENT_AVG_30YR_RATE = 6.71;
-  const MORTGAGE_RATE_FORECAST_LINE = 'Major forecasters (MBA, Fannie Mae) expect 30-year rates to hold in the mid-6% range through 2026–2027 — unlikely to drop under 6% anytime soon.';
   function renderMortgageRateWatchBox() {
     const container = document.getElementById('mortgageRateWatchAlert');
     if (!container) return;
@@ -3597,13 +3596,24 @@
 
     const eyebrow = '<div class="rate-watch-eyebrow">🏡 Mortgage Rate Watch</div>';
 
+    // SKUNKWORKS -- real fix, 2026-09-14, per Alex: "kevin doesn't really
+    // have anything to do with someone who says i'm interested in a
+    // mortgage in 8 years right away.. but that's valuable time for his
+    // company... that person in 8 years will go, wait, i have align
+    // credits, and there's a firm on there that'll take them for closing
+    // costs." Right insight: the whole watching period, not just the
+    // moment a target rate hits, is doing real work -- brand recall, not
+    // an active lead. Every state below now reinforces the same real
+    // mechanic (Align Credits apply to closing costs with a vetted
+    // partner) so that association is already built in by the time
+    // someone's actually ready, whether that's next year or in 8.
     if (!session.mortgageRateWatch) {
       container.innerHTML = '<div class="rate-watch-box">' + eyebrow +
         '<div class="rate-watch-row">' +
           '<div class="rate-watch-icon">🔔</div>' +
           '<div class="rate-watch-body">' +
             '<div class="rate-watch-title">Not buying yet? We\'ll watch rates until you are.</div>' +
-            '<div class="rate-watch-sub">Set an optional target rate and we\'ll let you know the moment it\'s worth a real conversation.</div>' +
+            '<div class="rate-watch-sub">Set an optional target rate — and whenever you\'re ready, your Align Credits go toward real closing costs with our vetted mortgage partner.</div>' +
           '</div>' +
           '<button class="rate-watch-cta ghost" onclick="openMortgageRateWatchPrompt()">Watch rates →</button>' +
         '</div></div>';
@@ -3619,7 +3629,7 @@
           '<div class="rate-watch-icon">📣</div>' +
           '<div class="rate-watch-body">' +
             '<div class="rate-watch-title">Rates hit your target of ' + target + '%.</div>' +
-            '<div class="rate-watch-sub">Today\'s average 30-year rate is ' + CURRENT_AVG_30YR_RATE + '% (Freddie Mac PMMS) — at or under what you were watching for. Worth a real conversation now.</div>' +
+            '<div class="rate-watch-sub">Today\'s average 30-year rate is ' + CURRENT_AVG_30YR_RATE + '% (Freddie Mac PMMS) — at or under what you were watching for. Your Align Credits are ready to go toward closing costs whenever you are.</div>' +
           '</div>' +
           '<button class="rate-watch-cta" onclick="window.location.href=aaExternalHref(\'marketplace/?dept=mortgage\')">Talk to Kevin →</button>' +
         '</div></div>';
@@ -3631,7 +3641,7 @@
         '<div class="rate-watch-icon">✓</div>' +
         '<div class="rate-watch-body">' +
           '<div class="rate-watch-title">Watching mortgage rates' + (target ? ' for ' + target + '% or better' : '') + '</div>' +
-          '<div class="rate-watch-sub">Today\'s average is ' + CURRENT_AVG_30YR_RATE + '% (Freddie Mac PMMS). ' + MORTGAGE_RATE_FORECAST_LINE + '</div>' +
+          '<div class="rate-watch-sub">Today\'s average is ' + CURRENT_AVG_30YR_RATE + '% (Freddie Mac PMMS), expected to hold in the mid-6% range through 2026–2027 (MBA, Fannie Mae). Whenever you\'re ready, your Align Credits go toward real closing costs with a vetted partner — no shopping around needed.</div>' +
         '</div>' +
       '</div></div>';
   }
