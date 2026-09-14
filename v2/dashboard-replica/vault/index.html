@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AssetAlign — Your Vault</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet" />
+  <!-- 2026-09-09 — real document reading, per Alex: "yes we want document
+       reading... anytime we can store data... we need it all." Both real
+       libraries, not a mock: pdf.js reads the actual embedded text layer of
+       a PDF (works for any digitally-generated document — a payroll
+       system's W-2, an insurer's declarations page — not a scanned photo
+       with no text layer); Tesseract.js runs real OCR client-side for
+       photos/screenshots. See readVaultDocument()/extractFieldsFromText()
+       below for the honest limits: a scanned-image PDF with no text layer
+       reads as empty text (flagged as "couldn't read" rather than guessed
+       at), and field extraction is keyword/regex pattern-matching against
+       a handful of known document shapes — not true document understanding,
+       and it says so in the UI rather than overclaiming confidence. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #0D3B66;
+      --navy-mid: #164d82;
+      --yellow: #F4D35E;
+      --yellow-bg: #fefae8;
+      --yellow-dark: #c9a227;
+      --white: #ffffff;
+      --gray: #f7f8fa;
+      --border: #e8e8e8;
+      --text: #1a2d42;
+      --muted: #6b7c93;
+      --green: #2d8a4e;
+      --nav-h: 70px;
+    }
+    body { font-family: 'Outfit', sans-serif; background: #f5f6f8; color: var(--text); min-height: 100vh; }
+
+    /* ── NAV ── (identical across every page in this suite — see shared.js's
+         header note on why this isn't split into a shared stylesheet) */
+    nav {
+      background: rgba(255,255,255,0.97);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      height: 70px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px; position: sticky; top: 0; z-index: 100;
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+    .nav-logo-name { font-size: 18px; font-weight: 600; color: var(--navy); letter-spacing: -0.01em; }
+    .nav-logo-name em { font-style: normal; color: var(--yellow-dark); }
+    .nav-links { display: flex; align-items: center; gap: 2px; list-style: none; }
+    .nav-links a { font-size: 14px; font-weight: 500; color: var(--muted); text-decoration: none; padding: 7px 13px; border-radius: 8px; transition: color 0.15s, background 0.15s; white-space: nowrap; }
+    .nav-links a:hover { color: var(--navy); background: #f2f4f6; }
+    .nav-links a.active { color: var(--navy); font-weight: 600; background: #f2f4f6; }
+    /* 2026-09-09 — real bug, per Alex testing live on his phone: this nav
+       (logo + up to 5 links + credits pill + name + Logout) had no mobile
+       treatment at all here, unlike assetalign-dashboard-v2/index.html
+       which got this exact fix on 2026-09-08 from real iPhone screenshots
+       ("the 25 credits is over the whole marketplace tab on top and
+       blocking the rest") — that fix was never copied to this page. Same
+       fix, ported verbatim: nav-links becomes its own scrollable strip:
+       the credits pill (what the tutorial spotlights first) is guaranteed
+       to stay on-screen via flex-shrink:0 on nav-right, least-essential
+       bits (full name, Logout) drop to save room. */
+    @media (max-width: 700px) {
+      nav { flex-wrap: wrap; height: auto; padding: 8px 12px 0; row-gap: 6px; }
+      .nav-logo-name { font-size: 14px; }
+      .nav-right { order: 2; flex-shrink: 0; gap: 8px; }
+      .nav-links {
+        order: 3; flex: 0 0 100%; width: 100%; gap: 4px;
+        padding: 8px 0; margin-top: 2px; border-top: 1px solid var(--border);
+      }
+      .nav-links li { flex: 1; min-width: 0; }
+      .nav-links a { display: block; padding: 6px 2px; font-size: 10.5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .nav-user-name, .nav-link-muted { display: none; }
+      .points-pill { font-size: 11px; padding: 5px 9px; }
+    }
+    .nav-links a.nav-marketplace { color: var(--navy); font-weight: 700; background: rgba(244,211,94,0.14); border: 1px solid rgba(244,211,94,0.4); }
+    .nav-links a.nav-marketplace:hover { background: rgba(244,211,94,0.24); }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .points-pill { background: var(--yellow); color: var(--navy); font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 20px; position: relative; cursor: default; }
+    .points-badge { position: absolute; top: -6px; right: -6px; background: #e53e3e; color: white; font-size: 10px; font-weight: 600; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .nav-link-muted { font-size: 13px; color: var(--muted); text-decoration: none; }
+    .nav-user { display: flex; align-items: center; gap: 9px; }
+    .nav-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--navy); color: var(--yellow); font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .nav-user-name { font-size: 13px; font-weight: 600; color: var(--navy); }
+
+    .page { max-width: 800px; margin: 0 auto; padding: 40px 24px 120px; }
+
+    /* ── credit toast (addLiveCredits reuses this — same object everywhere) ── */
+    .credit-toast { position: fixed; top: 90px; right: 5vw; z-index: 3000; display: flex; align-items: center; gap: 10px; pointer-events: none; opacity: 0; }
+    .credit-toast.show { animation: creditToastPop 2.1s cubic-bezier(.25,.9,.35,1) forwards; }
+    .credit-toast-coin { width: 42px; height: 42px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff5cc, #F4D35E 55%, #c9a02e); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; color: #7a5512; box-shadow: 0 8px 20px rgba(0,0,0,0.3), inset 0 0 0 3px rgba(255,255,255,0.35); animation: creditCoinSpin 0.9s ease; }
+    .credit-toast-label { font-size: 26px; font-weight: 800; color: #F4D35E; text-shadow: 0 2px 10px rgba(0,0,0,0.45); font-family: 'Outfit', sans-serif; }
+    @keyframes creditCoinSpin { 0% { transform: rotateY(0deg) scale(0.3); } 55% { transform: rotateY(720deg) scale(1.2); } 100% { transform: rotateY(1080deg) scale(1); } }
+    @keyframes creditToastPop { 0% { opacity: 0; transform: translateY(8px) scale(0.7); } 12% { opacity: 1; transform: translateY(0) scale(1.08); } 22% { transform: scale(1); } 78% { opacity: 1; transform: translateY(-4px) scale(1); } 100% { opacity: 0; transform: translateY(-30px) scale(0.95); } }
+
+    /* ── VAULT HERO ── */
+    .vault-hero { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%); border: 2px solid rgba(244,211,94,0.45); border-radius: 20px; padding: 26px 32px; margin-bottom: 24px; }
+    .vault-hero-top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .vault-hero-icon { font-size: 26px; line-height: 1; }
+    .vault-hero h1 { font-size: 22px; font-weight: 600; color: var(--white); }
+    .vault-hero-tagline { font-size: 14px; font-weight: 700; color: var(--yellow); margin-bottom: 10px; }
+    .vault-hero p { font-size: 13.5px; color: rgba(255,255,255,0.65); line-height: 1.65; }
+
+    /* ── VAULT SECTIONS ── */
+    .vault-section { background: var(--white); border: 1.5px solid var(--border); border-radius: 16px; padding: 22px 26px; margin-bottom: 22px; }
+    .vault-section-title { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+    .vault-section-sub { font-size: 12px; color: var(--muted); margin-bottom: 16px; line-height: 1.55; }
+
+    .vault-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+    .vault-row:last-child { border-bottom: none; }
+    .vault-row-icon { font-size: 17px; width: 24px; text-align: center; flex-shrink: 0; }
+    .vault-row-label { font-size: 13px; font-weight: 600; color: var(--navy); flex: 1; }
+    .vault-row-status { font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+    .vault-row-status.on { color: #16a34a; }
+    .vault-row-status.off { color: var(--muted); font-weight: 500; }
+    .vault-row-getstarted { font-size: 11.5px; font-weight: 700; color: var(--navy); cursor: pointer; text-decoration: underline; white-space: nowrap; margin-left: 10px; flex-shrink: 0; }
+    .vault-row-getstarted:hover { color: var(--yellow-dark); }
+    .vault-row-drop { border: 1.5px dashed var(--border); border-radius: 10px; padding: 9px 14px; margin: 0 0 10px 34px; font-size: 11.5px; color: var(--muted); cursor: pointer; transition: border-color .15s, background .15s; }
+    .vault-row-drop:hover, .vault-row-drop.drag-over { border-color: var(--yellow-dark); background: var(--yellow-bg); }
+    .vault-row-drop-browse { color: var(--navy); font-weight: 700; text-decoration: underline; cursor: pointer; }
+
+    /* ── AUDIT ON-RAMP CARD ── */
+    .vault-audit-card { display: flex; align-items: center; gap: 14px; background: var(--yellow-bg); border: 1px solid var(--yellow-dark); border-radius: 12px; padding: 15px 18px; margin-bottom: 18px; }
+    .vault-audit-icon { font-size: 22px; flex-shrink: 0; }
+    .vault-audit-text { flex: 1; font-size: 12px; color: var(--text); line-height: 1.5; }
+    .vault-audit-text strong { color: var(--navy); }
+    .vault-audit-btn { flex-shrink: 0; padding: 9px 16px; background: var(--navy); color: var(--white); border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Outfit', sans-serif; white-space: nowrap; transition: background 0.15s; }
+    .vault-audit-btn:hover { background: var(--navy-mid); }
+    .vault-audit-btn:disabled { background: #bcd; color: #eef; cursor: default; }
+
+    /* ── DROPZONE ── */
+    .vault-dropzone { border: 2px dashed var(--border); border-radius: 14px; padding: 26px 20px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; margin-bottom: 18px; }
+    .vault-dropzone:hover, .vault-dropzone.drag-over { border-color: var(--yellow-dark); background: var(--yellow-bg); }
+    .vault-dropzone-icon { font-size: 24px; margin-bottom: 8px; }
+    .vault-dropzone-title { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+    .vault-dropzone-sub { font-size: 11.5px; color: var(--muted); max-width: 420px; margin: 0 auto; line-height: 1.5; }
+
+    .vault-doc-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .vault-doc-row:last-child { border-bottom: none; }
+    .vault-doc-icon { font-size: 17px; width: 24px; text-align: center; flex-shrink: 0; }
+    .vault-doc-text { flex: 1; min-width: 0; }
+    .vault-doc-text strong { font-size: 12px; font-weight: 600; color: var(--navy); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .vault-doc-text span { font-size: 10.5px; color: var(--muted); }
+    .vault-doc-remove { border: none; background: var(--gray); color: var(--muted); width: 22px; height: 22px; border-radius: 50%; cursor: pointer; font-size: 11px; flex-shrink: 0; }
+    .vault-doc-remove:hover { background: var(--border); color: var(--text); }
+    .vault-doc-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 6px 0; }
+
+    .vault-footer-note { font-size: 11.5px; color: var(--muted); line-height: 1.6; margin-top: 4px; }
+    .vault-footer-link { display: inline-block; font-size: 12px; font-weight: 600; color: var(--navy); text-decoration: none; margin-top: 8px; }
+    .vault-footer-link:hover { text-decoration: underline; }
+
+    /* ── CREDITS DETAIL MODAL / DISCLOSURE (shared markup every page carries) ── */
+    .mp-section-title { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 10px; }
+    .btn-msg { padding: 10px 16px; background: var(--white); color: var(--navy); border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Outfit', sans-serif; transition: border-color 0.15s; }
+    .btn-msg:hover { border-color: var(--navy); }
+    .vesting-grid { display: grid; gap: 16px; }
+    .vesting-card { background: var(--white); border: 1.5px solid var(--border); border-radius: 14px; padding: 22px 20px; }
+    .vesting-card-title { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 14px; }
+    .vesting-table { display: flex; flex-direction: column; gap: 0; }
+    .vesting-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--navy); }
+    .vesting-row:last-child { border-bottom: none; }
+    .vesting-pts { font-weight: 700; color: #15803d; white-space: nowrap; margin-left: 8px; }
+    .vesting-pts.spend { color: var(--navy); }
+
+    .disclosure-overlay { display: none; position: fixed; inset: 0; background: rgba(8,20,48,0.92); z-index: 3000; align-items: center; justify-content: center; padding: 20px; }
+    .disclosure-overlay.show { display: flex; }
+    .disclosure-box { background: var(--white); border-radius: 20px; max-width: 560px; width: 100%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+    .disclosure-header { padding: 28px 32px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .disclosure-header h2 { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+    .disclosure-header p { font-size: 13px; color: var(--muted); }
+    .disclosure-body { padding: 24px 32px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; flex: 1; font-size: 11px; color: var(--text); line-height: 1.55; }
+    .disclosure-body h4 { font-size: 10.5px; font-weight: 700; color: var(--navy); text-transform: uppercase; letter-spacing: 0.08em; margin: 16px 0 5px; }
+    .disclosure-body h4:first-child { margin-top: 0; }
+    .disclosure-body p { margin-bottom: 10px; }
+    .disclosure-footer { padding: 20px 32px; border-top: 1px solid var(--border); flex-shrink: 0; }
+    .disclosure-check-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px; cursor: pointer; }
+    .disclosure-check-row input { margin-top: 2px; accent-color: var(--navy); width: 16px; height: 16px; flex-shrink: 0; }
+    .disclosure-check-row span { font-size: 11px; color: var(--text); line-height: 1.5; }
+    .disclosure-scroll-hint { font-size: 11.5px; font-weight: 600; color: var(--yellow-dark); text-align: center; margin-bottom: 12px; }
+    .disclosure-scroll-tap { display: inline-block; margin-top: 8px; padding: 8px 16px; background: var(--yellow-bg, #fefae8); border: 1.5px solid var(--yellow-dark); border-radius: 8px; font-size: 12px; font-weight: 700; color: var(--yellow-dark); cursor: pointer; font-family: inherit; }
+    .disclosure-scroll-tap:hover, .disclosure-scroll-tap:active { background: var(--yellow-dark); color: #fff; }
+    .btn-disclose-agree { width: 100%; padding: 13px; background: var(--navy); color: var(--white); border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Outfit', sans-serif; margin-bottom: 10px; transition: background 0.15s; }
+    .btn-disclose-agree:disabled { background: #ccc; cursor: default; }
+    .btn-disclose-agree:not(:disabled):hover { background: var(--navy-mid); }
+    .btn-disclose-decline { display: block; width: 100%; text-align: center; font-size: 12px; color: var(--muted); cursor: pointer; background: none; border: none; font-family: 'Outfit', sans-serif; }
+    .btn-disclose-decline:hover { color: var(--text); }
+
+    .trail-ends-overlay { display: none; position: fixed; inset: 0; background: var(--navy); z-index: 3000; align-items: center; justify-content: center; padding: 20px; }
+    .trail-ends-overlay.show { display: flex; }
+    .trail-ends-box { max-width: 460px; width: 100%; text-align: center; }
+    .trail-ends-icon { font-size: 48px; margin-bottom: 20px; }
+    .trail-ends-box h2 { font-size: 22px; font-weight: 700; color: var(--white); margin-bottom: 12px; }
+    .trail-ends-box p { font-size: 14px; color: rgba(255,255,255,0.55); line-height: 1.75; margin-bottom: 28px; }
+    .btn-trail-back { padding: 13px 24px; background: var(--yellow); color: var(--navy); border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Outfit', sans-serif; }
+
+    /* ── TOAST ── */
+    .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--navy); color: var(--white); font-size: 14px; font-weight: 600; padding: 14px 24px; border-radius: 10px; border-left: 4px solid var(--yellow); opacity: 0; transition: all 0.3s; z-index: 999; white-space: nowrap; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<nav>
+  <a href="../" class="nav-logo" id="navLogo">
+    <svg width="32" height="32" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M18 1.5L3.5 7.5V17c0 9.2 6.5 16.2 14.5 17.5C26 33.2 32.5 26.2 32.5 17V7.5L18 1.5z" fill="#f5a623"/>
+      <circle cx="18" cy="12" r="2.8" fill="#0d1f33"/>
+      <path d="M18 14.8v7.5" stroke="#0d1f33" stroke-width="2" stroke-linecap="round"/>
+      <path d="M14.5 18.5C14.5 18.5 16 16.8 18 16.8s3.5 1.7 3.5 1.7" stroke="#0d1f33" stroke-width="1.7" stroke-linecap="round" fill="none"/>
+      <path d="M12 22C13.5 20.5 15.5 19.8 18 19.8s4.5 0.7 6 2.2" stroke="#0d1f33" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+    </svg>
+    <div class="nav-logo-name">Asset<em>Align</em></div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="../" id="navDashboard">Dashboard</a></li>
+    <li><a href="../marketplace/" id="navExchange" class="nav-marketplace">Marketplace</a></li>
+    <li><a href="#" onclick="event.preventDefault(); openCreditsDetail();">Credits</a></li>
+    <li><a href="./" id="navVault" class="active">Documents</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="points-pill" id="tutPointsPill" onclick="openCreditsDetail()" style="cursor:pointer;" title="See your credits">⬡ <span id="navCreditsNum">175</span> Credits<span class="points-badge">+10</span></div>
+    <div class="nav-user">
+      <div class="nav-avatar" id="navAvatarInitial">J</div>
+      <span class="nav-user-name" id="navUserName">Jordan</span>
+    </div>
+    <a href="#" class="nav-link-muted" onclick="event.preventDefault(); aaLogout();">Logout</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- ── VAULT HERO ── -->
+  <!-- 2026-09-05, per Alex: "make sure we're letting people know this is a
+       real great thing.. and it's not intrusive data collection. just
+       like, from now on, you can skip the paperwork line type of concept."
+       Leads with the benefit/tagline before anything else, and states the
+       non-intrusive framing explicitly rather than leaving it implied. -->
+  <div class="vault-hero">
+    <div class="vault-hero-top">
+      <div class="vault-hero-icon">🔐</div>
+      <h1>Your Vault</h1>
+    </div>
+    <div class="vault-hero-tagline">Skip the paperwork line — for good.</div>
+    <!-- SKUNKWORKS -- real fix, 2026-09-14, per Alex: "when we say this
+         isn't about getting more data.. i don't think we need to call
+         attention to that. just lay out the rest of the statement of
+         what we are trying to do." Dropped the defensive "this isn't
+         about collecting more from you" lead-in -- leads with the actual
+         positive value instead. -->
+    <p>Never hand over the same information twice. Every document and detail you share with AssetAlign lives here, so the next form, application, or partner already has what it needs. Nothing leaves AssetAlign without your say-so, and you can see exactly what's shared, and turn any of it off, at any time.</p>
+  </div>
+
+  <!-- ── WHY THIS MATTERS ── -->
+  <!-- 2026-09-05, per Alex: "explain the vault a little bit.. for instance,
+       when someone wants to get a mortgage, we can essentially verify
+       payroll data for the person, give them some type of document that
+       they could hand to one of our mortgage partners." Real, researched
+       concept, not invented for this copy — see
+       project_assetalign_data_aggregation_strategy's Finch/VaultVerify
+       research (a self-serve, Finch-sourced instant income & employment
+       verification letter) and the Vault Security Plan's "Scenario 6"
+       (the letter is an OUTPUT of Scenario 1's Finch data, not new
+       collection). Not actually wired to a real letter-generation service
+       in this prototype — the sample below is explicitly labeled SAMPLE,
+       same honesty boundary as every other illustrative demo in this
+       workspace. -->
+  <div class="vault-section">
+    <div class="vault-section-title">Why this matters</div>
+    <div class="vault-section-sub" style="margin-bottom:14px;">The hardest part of most financial decisions isn't the decision — it's digging up the paperwork. The more we already have here, the less you'll ever have to track down again.</div>
+    <p style="font-size:12.5px; color:var(--text); line-height:1.7; margin-bottom:14px;">
+      <strong style="color:var(--navy);">A real example:</strong> say you're ready to buy a home. Normally that means digging up pay stubs, W-2s, and bank statements — and doing it again every time a lender asks. Because we already have your employment and income data on file, we can generate a real income &amp; employment verification letter and hand it straight to your mortgage partner — no digging through old paperwork.
+    </p>
+    <a href="#" onclick="event.preventDefault(); openVaultLetterSample();" style="font-size:12px; font-weight:600; color:var(--navy); text-decoration:none;">See a sample verification letter →</a>
+  </div>
+
+  <!-- ── WHAT WE HAVE ON FILE ── -->
+  <div class="vault-section">
+    <div class="vault-section-title">What we have on file</div>
+    <div class="vault-section-sub">Built from what you've already shared during onboarding and through the Marketplace — not anything new to fill out.</div>
+    <div id="vaultMosaic"><!-- populated by renderVaultMosaic() --></div>
+  </div>
+
+  <!-- ── ADD TO YOUR VAULT ── -->
+  <div class="vault-section">
+    <div class="vault-section-title">Add to your Vault</div>
+    <div class="vault-section-sub">Upload a statement, a form, anything relevant — we'll add it here so your advisor doesn't have to ask for it twice.</div>
+
+    <!-- Beneficiary Audit — the same real "Earn 10 credits" card that lives
+         in the Marketplace's Estate Planning pane, but wired to a real
+         completion here instead of a "coming soon" stub, per Alex: "we
+         would more than likely have this in the vault as an option.. they
+         could load up documents type of deal." First document uploaded
+         through this specific button completes the audit; uploading
+         through the general dropzone below does not. -->
+    <div class="vault-audit-card">
+      <div class="vault-audit-icon">👪</div>
+      <div class="vault-audit-text"><strong>Start a Beneficiary Audit.</strong> Upload an account statement or beneficiary form so we can check everything's up to date. Earn 10 credits.</div>
+      <button class="vault-audit-btn" id="vaultAuditBtn" onclick="startBeneficiaryAudit()">Start audit →</button>
+    </div>
+
+    <input type="file" id="vaultFileInput" multiple style="display:none;" onchange="handleVaultFiles(this.files)" />
+    <div class="vault-dropzone" id="vaultDropzone" onclick="document.getElementById('vaultFileInput').click()">
+      <div class="vault-dropzone-icon">📎</div>
+      <div class="vault-dropzone-title">Drop a file here, or click to upload</div>
+      <div class="vault-dropzone-sub">Insurance statements, W-2s, beneficiary forms, account statements — anything that helps build a fuller picture.</div>
+    </div>
+
+    <div id="vaultDocList"><!-- populated by renderVaultDocuments() --></div>
+    <div class="vault-doc-empty" id="vaultDocEmpty">Nothing uploaded yet — your Vault is ready when you are.</div>
+  </div>
+
+  <div class="vault-footer-note">
+    Your Vault is private to you and your matched advisor. See exactly what's shared, with whom, and turn any of it off — <a class="vault-footer-link" href="https://assetalign-passport.netlify.app" target="_blank" rel="noopener">view your full Financial Passport →</a>
+  </div>
+
+</div>
+
+<!-- ── SAMPLE VERIFICATION LETTER ── -->
+<div class="disclosure-overlay" id="vaultLetterModal">
+  <div class="disclosure-box" style="max-width: 520px;">
+    <div class="disclosure-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px;">
+      <div>
+        <h2>Income &amp; Employment Verification</h2>
+        <p>What a mortgage partner would receive — SAMPLE, illustrative only.</p>
+      </div>
+      <button class="btn-msg" onclick="closeVaultLetterSample()" style="flex-shrink:0;">✕ Close</button>
+    </div>
+    <div class="disclosure-body">
+      <div style="border:1.5px dashed var(--yellow-dark); background:var(--yellow-bg); border-radius:10px; padding:10px 14px; font-size:11px; font-weight:700; color:var(--yellow-dark); text-transform:uppercase; letter-spacing:.04em; margin-bottom:18px; text-align:center;">Sample document — not a real verification letter</div>
+      <div style="border:1.5px solid var(--border); border-radius:12px; padding:24px 26px; font-size:13px; line-height:1.75;" id="vaultLetterBody">
+        <!-- filled in by renderVaultLetterSample() -->
+      </div>
+      <p style="font-size:11.5px; color:var(--muted); margin-top:14px; line-height:1.6;">In production, this would be generated automatically from your real, connected Finch payroll data — with exact income and tenure figures — and delivered straight to the partner you're working with, no re-entering anything.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── CREDITS DETAIL MODAL ── (same older flat layout as kevin/sarah/marcus — see those pages' own dev note on backporting the History/Ways-to-Earn tabs if this is ever revisited) -->
+<div class="disclosure-overlay" id="creditsDetailModal">
+  <div class="disclosure-box" style="max-width: 640px;">
+    <div class="disclosure-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px;">
+      <div>
+        <h2>How Align Credits Work</h2>
+        <p>The full breakdown — earning and spending.</p>
+      </div>
+      <button class="btn-msg" onclick="closeCreditsDetail()" style="flex-shrink:0;">✕ Close</button>
+    </div>
+    <div class="disclosure-body">
+      <div class="vesting-grid" style="grid-template-columns: 1fr; gap: 20px;">
+        <div class="vesting-card" style="padding:0; border:none;">
+          <div class="vesting-card-title" style="margin-bottom:10px;">Earning Credits</div>
+          <div class="vesting-table">
+            <div class="vesting-row"><span>Complete your financial profile</span><span class="vesting-pts">+10</span></div>
+            <div class="vesting-row"><span>Schedule time with your advisor</span><span class="vesting-pts">+25</span></div>
+            <div class="vesting-row"><span>Submit insurance information</span><span class="vesting-pts">+10</span></div>
+            <div class="vesting-row"><span>Review quotes in the Marketplace</span><span class="vesting-pts">+10</span></div>
+            <div class="vesting-row"><span>Complete a financial plan review</span><span class="vesting-pts">+10</span></div>
+            <div class="vesting-row"><span>Beneficiary audit</span><span class="vesting-pts">+10</span></div>
+          </div>
+        </div>
+        <div class="vesting-card" style="padding:0; border:none; border-top: 1px solid var(--border); padding-top: 20px;">
+          <div class="vesting-card-title" style="margin-bottom:10px;">Spending Credits</div>
+          <div class="vesting-table">
+            <div class="vesting-row"><span>Auto &amp; Home insurance review</span><span class="vesting-pts spend">10 credits</span></div>
+            <div class="vesting-row"><span>Life insurance policy review</span><span class="vesting-pts spend">25 credits</span></div>
+            <div class="vesting-row"><span>Will &amp; trust setup</span><span class="vesting-pts spend">25 credits</span></div>
+            <div class="vesting-row"><span>Tax preparation</span><span class="vesting-pts spend">25 credits</span></div>
+            <div class="vesting-row"><span>Home down payment boost</span><span class="vesting-pts spend">25 credits</span></div>
+            <div class="vesting-row"><span>Debt paydown contribution</span><span class="vesting-pts spend">10 credits</span></div>
+          </div>
+          <div style="font-size:11px; color:var(--muted); margin-top:10px; line-height:1.5;">1 credit = $1 value when applied toward Marketplace services. Credits have no cash value and cannot be transferred.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── DISCLOSURE MODAL ── -->
+<div class="disclosure-overlay" id="disclosureModal">
+  <div class="disclosure-box">
+    <div class="disclosure-header">
+      <h2>Before You Get Started</h2>
+      <p>Please read the following disclosures. This takes about 90 seconds.</p>
+    </div>
+    <div class="disclosure-body" id="disclosureBody">
+      <h4>Item 1. Who We Are</h4>
+      <p>AssetAlign is a <strong>financial wellness enablement platform</strong>, operated by ABTW Corporation, which is registered as an investment adviser with the Massachusetts Securities Division. We connect you with the right financial solutions, efficiently — whether that's a vetted independent advisor or a trusted partner for insurance, estate planning, tax prep, or debt management. Advisors available through our platform are independent professionals, registered as investment advisers or broker-dealers in their own right; AssetAlign itself does not manage your investments or provide investment, legal, or tax advice directly.</p>
+
+      <h4>Item 2. Align Credits</h4>
+      <p>Align Credits are a loyalty reward issued solely by AssetAlign. They carry no monetary value outside the AssetAlign platform, cannot be exchanged for cash, and may only be redeemed for services in the AssetAlign Exchange. Credits tied to a real partner transaction (like a completed insurance quote) are available to use the moment you earn them; other credits vest 90 days after being earned. Credits are non-transferable.</p>
+      <p>Because you can earn and spend credits across different services, they may encourage you to try something you wouldn't otherwise — make each choice on its own merits, not your credit balance.</p>
+
+      <h4>Item 3. Your Information</h4>
+      <p>By using this platform, you consent to AssetAlign collecting and using your financial profile information — including goals, income range, insurance information, and any documents you choose to upload to your Vault — to facilitate advisor matching and partner recommendations. We may share relevant profile information with matched advisors and Exchange partners solely to facilitate service delivery. We do not sell your personal information to third parties.</p>
+
+      <h4>Item 4. No Guarantee</h4>
+      <p>AssetAlign does not guarantee the suitability, performance, qualifications, or conduct of any matched advisor or Exchange partner. Advisor and partner matching is based on profile compatibility and is for informational purposes only. All financial decisions remain solely your responsibility.</p>
+
+      <h4>Item 5. Our Registration</h4>
+      <p>ABTW Corporation (d/b/a AssetAlign) is registered as an investment adviser with the Massachusetts Securities Division and is not registered with the U.S. Securities and Exchange Commission (SEC). You can independently verify our registration and review our Form ADV at <strong>adviserinfo.sec.gov</strong>, a free public tool covering both state- and SEC-registered advisers.</p>
+
+      <h4>Item 6. How AssetAlign Makes Money</h4>
+      <p>AssetAlign may receive compensation — including referral fees and ongoing revenue share — from the financial advisors and Exchange partners (insurance, mortgage, estate planning, tax, and debt services) you connect with. This doesn't add to your cost. It may give us an incentive to favor advisors or partners who pay us more, so the decision to work with any of them is always yours to make independently. Mortgage-related compensation follows the additional rules set by the federal Real Estate Settlement Procedures Act (RESPA).</p>
+
+      <h4>Item 7. Questions</h4>
+      <p>If you have questions about these disclosures or our compensation arrangements, please contact us at <strong>compliance@assetalign.net</strong> before proceeding. The complete disclosure, including how we work with employers, is always available via the "Disclosures" link.</p>
+    </div>
+    <div class="disclosure-footer">
+      <label class="disclosure-check-row">
+        <input type="checkbox" id="disclosureCheck" onchange="toggleAgreeBtn()"/>
+        <span>I have read and understand AssetAlign's disclosures, including that AssetAlign receives compensation from advisors and Exchange partners, and that Align Credits create an incentive to use additional services.</span>
+      </label>
+      <div class="disclosure-scroll-hint" id="disclosureScrollHint">↓ Scroll down to read the full disclosure before you can agree<br/><button type="button" class="disclosure-scroll-tap" onclick="aaScrollDisclosureDown()">Tap here to keep reading ↓</button></div>
+      <button class="btn-disclose-agree" id="btnAgree" disabled onclick="agreeDisclosure()">I Agree &amp; Continue to My Dashboard →</button>
+      <button class="btn-disclose-decline" onclick="declineDisclosure()">I do not agree</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TRAIL ENDS ── -->
+<div class="trail-ends-overlay" id="trailEndsOverlay">
+  <div class="trail-ends-box">
+    <div class="trail-ends-icon">🔒</div>
+    <h2>We respect your decision.</h2>
+    <p>AssetAlign requires all users to acknowledge our revenue sharing disclosures before accessing the platform. This helps ensure you have full transparency into how we operate and earn revenue — because that's the right way to do this.</p>
+    <p style="font-size:13px; color:rgba(255,255,255,0.4);">If you change your mind, you can return at any time.</p>
+    <button class="btn-trail-back" onclick="goBackToDisclosure()">Go Back &amp; Review Disclosures</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="../shared.js?v=20260913f"></script>
+<script>
+  // 2026-09-05 — Vault page, per Alex: "even though we don't necessarily
+  // have anything yet, i think we want to create a place where things like
+  // the financial plan can live.. or if they load up an insurance
+  // statement.. maybe this can be something like the Vault." Replaces the
+  // dead "Documents coming soon" nav stub on every page in this suite.
+  // Mosaic rows read real session flags (same ones renderCreditsHistory()/
+  // renderActivityFeed() on the Dashboard already use) — nothing here is
+  // invented. Uploads are real client-side interactions (a real <input
+  // type="file"> + real drag-and-drop) but nothing is actually transmitted
+  // anywhere — filenames are stored in the session only, same "illustrative,
+  // no real backend" boundary as every other prototype in this workspace.
+  // vaultDocuments/beneficiaryAuditDone are new session fields, additive —
+  // no existing field renamed or repurposed.
+
+  function initVaultPage() {
+    const session = aaResolveSession();
+    aaPaintNav(session);
+    setLiveCredits(session.credits);
+    aaShowDisclosureIfNeeded();
+    renderVaultMosaic();
+    renderVaultDocuments();
+    wireVaultDropzone();
+  }
+
+  // 2026-09-05, per Alex: "for each thing that says not started.. a little
+  // link should show that allows them to drop a file there too.. get
+  // started than a little way to drop a file." Every "not on file" row now
+  // gets its own "Get started →" link that reveals a small inline
+  // drop/upload target scoped to that category — no need to scroll down to
+  // the general dropzone. A category counts as "on file" if either the
+  // real completion flag is set (a genuine Zebra quote, a real GoodTrust
+  // purchase) OR a document has been uploaded to it here — the two are
+  // tracked separately in onSub so an upload never claims more than it is
+  // ("Document on file" vs. the real flow's own specific text).
+  function renderVaultMosaic() {
+    const session = aaLoadSession();
+    const balance = parseInt(session.balance, 10);
+    const docs = session.vaultDocuments || [];
+    const catCount = {};
+    docs.forEach(function (d) { if (d.category) catCount[d.category] = (catCount[d.category] || 0) + 1; });
+
+    const items = [
+      // 2026-09-09, per Alex: make sure every category, financial plan
+      // included, has somewhere to actually upload a document — this row
+      // previously had no `key` at all, so it could never show the upload
+      // trigger even though it's the single most-referenced category in
+      // this page's own "why this matters" copy below.
+      { icon: '📋', label: 'Financial plan', key: 'financialplan', on: true, onSub: catCount.financialplan ? catCount.financialplan + ' document' + (catCount.financialplan > 1 ? 's' : '') + ' on file' : 'From your advisor' },
+      { icon: '💼', label: 'Employment & income', on: true, onSub: 'Connected via Finch' },
+      { icon: '💰', label: 'Retirement & savings', key: 'retirement', on: !isNaN(balance) || !!catCount.retirement, onSub: !isNaN(balance) ? 'From onboarding' : 'Document on file' },
+      { icon: '🚗', label: 'Auto insurance', key: 'auto', on: !!session.autoInsuranceDone || !!catCount.auto, onSub: session.autoInsuranceDone ? 'Zebra quote submitted' : 'Document on file', dept: 'auto' },
+      { icon: '🛟', label: 'Life insurance', key: 'life', on: !!session.lifeInsurancePaid || !!catCount.life, onSub: session.lifeInsurancePaid ? 'Policy on record' : 'Document on file', dept: 'life' },
+      { icon: '🏛', label: 'Estate documents', key: 'estate', on: !!session.estatePlanningDone || !!catCount.estate, onSub: session.estatePlanningDone ? 'GoodTrust documents' : 'Document on file', dept: 'estate' },
+      { icon: '👪', label: 'Beneficiary audit', key: 'beneficiary', on: !!session.beneficiaryAuditDone || !!catCount.beneficiary, onSub: session.beneficiaryAuditDone ? 'Audit complete' : 'Document on file', dept: 'estate' },
+    ];
+    document.getElementById('vaultMosaic').innerHTML = items.map(function (it, idx) {
+      const rowId = 'vaultRow' + idx;
+      let html = '<div class="vault-row">'
+        + '<span class="vault-row-icon">' + it.icon + '</span>'
+        + '<span class="vault-row-label">' + it.label + '</span>';
+      if (it.on) {
+        html += '<span class="vault-row-status on">✓ ' + it.onSub + '</span>';
+        // 2026-09-09, per Alex: a completed row ("will and trust is set
+        // up") had no way to click into it and review/fix anything — only
+        // "not started" rows had an action. Real dept-backed categories
+        // (auto/life/estate/beneficiary) route back to the Marketplace pane
+        // that actually owns that flow. Categories with no separate
+        // management UI elsewhere (financial plan, retirement) instead get
+        // a direct "+ Add a document" upload trigger, same drop-zone every
+        // "not started" row already uses — per Alex: "make sure the
+        // documents/vault has a place where everything can be uploaded,
+        // including a financial plan," which this previously had no way to
+        // do once the row already read "on". Employment & income has
+        // neither (it's a live Finch feed, nothing to upload or manage).
+        if (it.dept) {
+          html += '<span class="vault-row-getstarted" onclick="location.href=\'../marketplace/?dept=' + it.dept + '\'">Manage →</span>';
+        } else if (it.key) {
+          html += '<span class="vault-row-getstarted" onclick="toggleVaultRowUpload(\'' + rowId + '\')">+ Add a document</span>';
+        }
+      } else {
+        html += '<span class="vault-row-status off">○ Not shared yet</span>'
+          + '<span class="vault-row-getstarted" onclick="toggleVaultRowUpload(\'' + rowId + '\')">Get started →</span>';
+      }
+      html += '</div>';
+      if (it.key) {
+        html += '<div class="vault-row-drop" id="' + rowId + '" data-category="' + it.key + '" style="display:none;" onclick="triggerVaultRowUpload(\'' + it.key + '\')">'
+          + 'Drop a file here, or <span class="vault-row-drop-browse">click to upload</span>'
+          + '</div>';
+      }
+      return html;
+    }).join('');
+    wireVaultRowDropzones();
+
+    const btn = document.getElementById('vaultAuditBtn');
+    if (session.beneficiaryAuditDone) {
+      btn.textContent = '✓ Audit started';
+      btn.disabled = true;
+    }
+  }
+
+  function toggleVaultRowUpload(rowId) {
+    const el = document.getElementById(rowId);
+    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function triggerVaultRowUpload(category) {
+    vaultUploadContext = category;
+    document.getElementById('vaultFileInput').click();
+  }
+
+  function wireVaultRowDropzones() {
+    document.querySelectorAll('.vault-row-drop').forEach(function (dz) {
+      if (dz.dataset.wired) return;
+      dz.dataset.wired = '1';
+      dz.addEventListener('dragover', function (e) { e.preventDefault(); dz.classList.add('drag-over'); });
+      dz.addEventListener('dragleave', function () { dz.classList.remove('drag-over'); });
+      dz.addEventListener('drop', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dz.classList.remove('drag-over');
+        vaultUploadContext = dz.dataset.category;
+        handleVaultFiles(e.dataTransfer.files);
+      });
+    });
+  }
+
+  function openVaultLetterSample() {
+    const session = aaLoadSession();
+    const name = session.name || 'Member';
+    const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('vaultLetterBody').innerHTML =
+      '<p style="margin-bottom:14px;"><strong>' + today + '</strong></p>'
+      + '<p style="margin-bottom:14px;">To Whom It May Concern,</p>'
+      + '<p style="margin-bottom:14px;">This letter confirms that <strong>' + name + '</strong> is a verified member of the AssetAlign platform, with current employment and income verified through our payroll data partner, Finch, as of the date above.</p>'
+      + '<div style="background:var(--gray); border-radius:8px; padding:14px 16px; margin-bottom:14px;">'
+      + '<div style="display:flex; justify-content:space-between; padding:4px 0;"><span style="color:var(--muted);">Employment status</span><span style="font-weight:600;">Active, verified</span></div>'
+      + '<div style="display:flex; justify-content:space-between; padding:4px 0;"><span style="color:var(--muted);">Income</span><span style="font-weight:600;">Verified — on file with Finch</span></div>'
+      + '<div style="display:flex; justify-content:space-between; padding:4px 0;"><span style="color:var(--muted);">Verified via</span><span style="font-weight:600;">Finch payroll connection</span></div>'
+      + '</div>'
+      + '<p>Please contact AssetAlign at compliance@assetalign.net with any questions regarding this verification.</p>';
+    document.getElementById('vaultLetterModal').classList.add('show');
+    aaLockBodyScroll();
+  }
+  function closeVaultLetterSample() {
+    document.getElementById('vaultLetterModal').classList.remove('show');
+    aaUnlockBodyScroll();
+  }
+
+  function vaultFileIcon(name) {
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    if (ext === 'pdf') return '📄';
+    if (['png','jpg','jpeg','gif','heic','webp'].indexOf(ext) !== -1) return '🖼️';
+    if (['doc','docx'].indexOf(ext) !== -1) return '📝';
+    if (['xls','xlsx','csv'].indexOf(ext) !== -1) return '📊';
+    return '📎';
+  }
+
+  // 2026-09-09 — shows real read status per document (see
+  // readVaultDocument() below): pending/reading while extraction runs,
+  // then either what was actually found (docType + any fields) or an
+  // honest "couldn't read this one" — never a fake success state.
+  function renderVaultDocuments() {
+    const session = aaLoadSession();
+    const docs = session.vaultDocuments || [];
+    const list = document.getElementById('vaultDocList');
+    const empty = document.getElementById('vaultDocEmpty');
+    if (!docs.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    list.innerHTML = docs.map(function (d) {
+      let statusLine = 'Added this session';
+      if (d.readStatus === 'reading') statusLine = '🔍 Reading document…';
+      else if (d.readStatus === 'unsupported') statusLine = 'Saved — this file type isn\'t read automatically';
+      else if (d.readStatus === 'failed') statusLine = 'Saved — couldn\'t read this one automatically';
+      else if (d.readStatus === 'empty') statusLine = 'Saved — no readable text found (likely a scanned image with no text layer)';
+      else if (d.readStatus === 'done') {
+        const fieldCount = d.extractedFieldCount || 0;
+        statusLine = d.docType
+          ? '✓ Recognized as ' + d.docType + (fieldCount ? ' — ' + fieldCount + ' field' + (fieldCount === 1 ? '' : 's') + ' added to your Passport' : ' — no specific fields pulled out')
+          : '✓ Read — didn\'t match a known document type, saved as-is';
+      }
+      return '<div class="vault-doc-row">'
+        + '<div class="vault-doc-icon">' + vaultFileIcon(d.name) + '</div>'
+        + '<div class="vault-doc-text"><strong>' + d.name + '</strong><span>' + statusLine + '</span></div>'
+        + '<button class="vault-doc-remove" onclick="removeVaultDocument(\'' + d.id + '\')" title="Remove">✕</button>'
+        + '</div>';
+    }).join('');
+  }
+
+  let vaultUploadContext = null; // set right before opening the file picker for a specific on-ramp (e.g. 'audit')
+
+  function startBeneficiaryAudit() {
+    vaultUploadContext = 'audit';
+    document.getElementById('vaultFileInput').click();
+  }
+
+  // 2026-09-09 — now async: kicks off real text extraction for each file
+  // right after it's saved (see readVaultDocument() below), instead of just
+  // remembering the filename. The upload itself still completes instantly
+  // (unchanged UX) — reading happens in the background and updates the row
+  // in place once each file's real result is in.
+  async function handleVaultFiles(fileList) {
+    if (!fileList || !fileList.length) return;
+    const session = aaLoadSession();
+    const docs = session.vaultDocuments || [];
+    // 'audit' is its own special context (see startBeneficiaryAudit) but the
+    // document itself still belongs to the Beneficiary audit category —
+    // otherwise tag with whatever category row triggered this upload.
+    const category = vaultUploadContext === 'audit' ? 'beneficiary' : vaultUploadContext;
+    const filesToRead = [];
+    Array.prototype.forEach.call(fileList, function (f) {
+      const doc = { name: f.name, id: Date.now() + '-' + Math.random().toString(36).slice(2, 7), category: category || null, readStatus: 'pending' };
+      docs.push(doc);
+      filesToRead.push({ id: doc.id, file: f });
+    });
+    aaSaveSession({ vaultDocuments: docs });
+
+    if (vaultUploadContext === 'audit' && !session.beneficiaryAuditDone) {
+      aaSaveSession({ beneficiaryAuditDone: true });
+      // SKUNKWORKS -- credit economics pass, 2026-09-13, per Alex: "for
+      // other things i think we want to make it 5.. except the original
+      // 25." No confirmed revenue backs this one (unlike Zebra's real
+      // $30/quote) -- cut from 10 to 5.
+      // SKUNKWORKS -- vesting reintroduced, 2026-09-13, per Alex: "yes and
+      // build it" -- queued instead of awarded immediately (see shared.js's
+      // AA_VESTING_DAYS dev note); toast now says so honestly rather than
+      // claiming credits were added right away.
+      aaQueuePendingCredit('beneficiary', 'Beneficiary audit started', 5);
+      showToast('Beneficiary audit started — 5 credits pending (available in 90 days)');
+    } else {
+      showToast(fileList.length > 1 ? fileList.length + ' documents added to your Vault' : '"' + fileList[0].name + '" added to your Vault');
+    }
+    vaultUploadContext = null;
+    document.getElementById('vaultFileInput').value = '';
+    renderVaultDocuments();
+    // Fire-and-continue: don't block the upload UI on extraction (a photo
+    // can take several seconds to OCR) — each file updates its own row
+    // independently as its real result comes in. Sequential, not parallel,
+    // so a batch of several photos doesn't fight over the OCR engine at once.
+    (async function () {
+      for (const item of filesToRead) { await readVaultDocument(item.id, item.file); }
+    })();
+    renderVaultMosaic();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // REAL DOCUMENT READING — 2026-09-09, per Alex: "yes we want document
+  // reading... we want to make sure we are reading docs in the vault...
+  // getting that all stored into the financial passport." This is real
+  // extraction, not a mock: pdf.js reads a PDF's actual embedded text
+  // layer; Tesseract.js runs real OCR on an image. What it does NOT do is
+  // true document understanding — field-finding below is keyword/regex
+  // pattern-matching against a handful of known document shapes (auto
+  // insurance declarations, W-2/pay stub, mortgage statement, estate
+  // documents). It's honest about its own limits at every step: a file
+  // type it can't read (doc/xls/etc.) is flagged unsupported rather than
+  // silently skipped; a PDF with no real text layer (a flatbed-scanned
+  // image saved as PDF) comes back empty and is flagged as such rather
+  // than guessed at; text that doesn't match any known pattern is flagged
+  // "read but not recognized" rather than forcing a fake match.
+  // ═══════════════════════════════════════════════════════════════════
+
+  let pdfWorkerConfigured = false;
+  function ensurePdfWorker() {
+    if (pdfWorkerConfigured || typeof pdfjsLib === 'undefined') return;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    pdfWorkerConfigured = true;
+  }
+
+  async function extractPdfText(file) {
+    ensurePdfWorker();
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    let text = '';
+    // Capped at 8 pages — real declarations pages/pay stubs/statements are
+    // 1-3 pages; a longer document just gets its first several pages
+    // scanned rather than stalling the browser on something enormous.
+    const maxPages = Math.min(pdf.numPages, 8);
+    for (let i = 1; i <= maxPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(function (it) { return it.str; }).join(' ') + '\n';
+    }
+    return text;
+  }
+
+  async function extractImageText(file) {
+    const result = await Tesseract.recognize(file, 'eng');
+    return result.data.text;
+  }
+
+  // Real, disclosed heuristic — see this section's own header note. Add a
+  // new document type here the same way if the Vault ever needs to
+  // recognize something else (e.g. a Social Security statement, a 1099).
+  const VAULT_CARRIER_NAMES = ['Geico', 'Progressive', 'State Farm', 'Allstate', 'Liberty Mutual', 'Nationwide', 'Farmers', 'USAA', 'Travelers'];
+  function extractFieldsFromText(text) {
+    const t = text || '';
+    const lower = t.toLowerCase();
+    const fields = {};
+    let docType = null;
+
+    if (lower.indexOf('declarations') !== -1 || lower.indexOf('policy number') !== -1 || lower.indexOf('coverage summary') !== -1) {
+      docType = 'an auto insurance declarations page';
+      const carrier = VAULT_CARRIER_NAMES.filter(function (c) { return lower.indexOf(c.toLowerCase()) !== -1; })[0];
+      if (carrier) fields.autoInsuranceCarrier = carrier;
+      const premiumMatch = t.match(/\$\s?[\d,]+(?:\.\d{2})?\s*(?:\/|per)?\s*(?:mo|month)\b/i);
+      if (premiumMatch) fields.autoInsurancePremium = premiumMatch[0].trim();
+      const vinMatch = t.match(/\b[A-HJ-NPR-Z0-9]{17}\b/);
+      if (vinMatch) fields.vehicleVIN = vinMatch[0];
+    } else if (lower.indexOf('w-2') !== -1 || lower.indexOf('wage and tax statement') !== -1 || lower.indexOf('gross pay') !== -1 || lower.indexOf('pay stub') !== -1) {
+      docType = 'an income document (W-2 or pay stub)';
+      const employerMatch = t.match(/employer(?:'s name)?[:\s]+([A-Z][A-Za-z0-9 &.,'-]{2,40})/i);
+      if (employerMatch) fields.incomeDocEmployer = employerMatch[1].trim();
+    } else if (lower.indexOf('mortgage statement') !== -1 || lower.indexOf('principal balance') !== -1 || (lower.indexOf('mortgage') !== -1 && lower.indexOf('interest rate') !== -1)) {
+      docType = 'a mortgage statement';
+      fields.hasMortgage = 'Yes';
+      const balanceMatch = t.match(/(?:unpaid )?principal balance[:\s]*\$?\s?([\d,]+(?:\.\d{2})?)/i);
+      if (balanceMatch) fields.mortgageRemainingBalance = '$' + balanceMatch[1];
+      const rateMatch = t.match(/interest rate[:\s]*([\d.]+)\s*%/i);
+      if (rateMatch) fields.mortgageRate = rateMatch[1] + '%';
+    } else if (lower.indexOf('last will and testament') !== -1 || lower.indexOf('revocable trust') !== -1 || lower.indexOf('living trust') !== -1) {
+      docType = 'an estate planning document';
+      fields.hasWillOnFile = 'Yes';
+    }
+
+    return { docType: docType, fields: fields };
+  }
+
+  function updateVaultDoc(docId, patch) {
+    const session = aaLoadSession();
+    const docs = session.vaultDocuments || [];
+    const idx = docs.findIndex(function (d) { return d.id === docId; });
+    if (idx === -1) return;
+    docs[idx] = Object.assign({}, docs[idx], patch);
+    aaSaveSession({ vaultDocuments: docs });
+  }
+
+  async function readVaultDocument(docId, file) {
+    updateVaultDoc(docId, { readStatus: 'reading' });
+    renderVaultDocuments();
+
+    const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+    const isImage = /^image\//.test(file.type) || /\.(png|jpe?g|gif|heic|webp)$/i.test(file.name);
+    if (!isPdf && !isImage) {
+      updateVaultDoc(docId, { readStatus: 'unsupported' });
+      renderVaultDocuments();
+      return;
+    }
+
+    let text = '';
+    try {
+      text = isPdf ? await extractPdfText(file) : await extractImageText(file);
+    } catch (e) {
+      updateVaultDoc(docId, { readStatus: 'failed' });
+      renderVaultDocuments();
+      return;
+    }
+
+    if (!text || !text.trim()) {
+      // A real, expected case — a scanned page saved as PDF has no text
+      // layer for pdf.js to find, and a very low-quality photo can give
+      // Tesseract nothing usable either. Honest, not a crash.
+      updateVaultDoc(docId, { readStatus: 'empty' });
+      renderVaultDocuments();
+      return;
+    }
+
+    const extraction = extractFieldsFromText(text);
+    const fieldCount = Object.keys(extraction.fields).length;
+    updateVaultDoc(docId, { readStatus: 'done', docType: extraction.docType, extractedFieldCount: fieldCount });
+    if (fieldCount) {
+      aaSaveSession(extraction.fields);
+      renderVaultMosaic();
+    }
+    renderVaultDocuments();
+  }
+
+  function removeVaultDocument(id) {
+    const session = aaLoadSession();
+    const docs = (session.vaultDocuments || []).filter(function (d) { return d.id !== id; });
+    aaSaveSession({ vaultDocuments: docs });
+    renderVaultDocuments();
+  }
+
+  function wireVaultDropzone() {
+    const dz = document.getElementById('vaultDropzone');
+    dz.addEventListener('dragover', function (e) { e.preventDefault(); dz.classList.add('drag-over'); });
+    dz.addEventListener('dragleave', function () { dz.classList.remove('drag-over'); });
+    dz.addEventListener('drop', function (e) {
+      e.preventDefault();
+      dz.classList.remove('drag-over');
+      handleVaultFiles(e.dataTransfer.files);
+    });
+  }
+
+  initVaultPage();
+
+  function openCreditsDetail() {
+    document.getElementById('creditsDetailModal').classList.add('show');
+    aaLockBodyScroll();
+  }
+  function closeCreditsDetail() {
+    document.getElementById('creditsDetailModal').classList.remove('show');
+    aaUnlockBodyScroll();
+  }
+</script>
+
+</body>
+</html>
