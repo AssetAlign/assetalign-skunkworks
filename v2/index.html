@@ -1,222 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Meridian Industries — Company Announcement</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Skunkworks V2 — Redesign Track</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
   :root{
-    --page-bg:#eef0f3;
-    --card-bg:#ffffff;
-    --border:#dfe3e8;
-    --ink:#1c2733;
-    --muted:#5a6572;
-    --meridian-navy:#1f3a5f;
-    --meridian-accent:#2e6b4f;
-    --link:#1a5fb4;
+    --paper:#f5f3ee; --surface:#ffffff; --surface-2:#ece8dc;
+    --ink:#1a2333; --ink-soft:#5c6b82; --border:#ddd8c8;
+    --navy:#16345f; --navy-deep:#0b1f3a; --gold:#b8923f; --gold-soft:#f1e6c8;
+    --live:#2f7a52; --live-bg:#e6f2ea; --local:#8a6a1e; --local-bg:#f3ecd8;
+    --shadow: 0 1px 2px rgba(11,31,58,.05), 0 10px 26px rgba(11,31,58,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0c1622; --surface:#121e2e; --surface-2:#182537;
+      --ink:#e7ecf3; --ink-soft:#93a2b8; --border:#233350;
+      --navy:#7fa8dd; --navy-deep:#c9dcf5; --gold:#dcb668; --gold-soft:#2e2712;
+      --live:#7fd1a8; --live-bg:#12332a; --local:#dcb668; --local-bg:#2e2712;
+      --shadow: 0 1px 2px rgba(0,0,0,.35), 0 12px 28px rgba(0,0,0,.32);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0c1622; --surface:#121e2e; --surface-2:#182537;
+    --ink:#e7ecf3; --ink-soft:#93a2b8; --border:#233350;
+    --navy:#7fa8dd; --navy-deep:#c9dcf5; --gold:#dcb668; --gold-soft:#2e2712;
+    --live:#7fd1a8; --live-bg:#12332a; --local:#dcb668; --local-bg:#2e2712;
+    --shadow: 0 1px 2px rgba(0,0,0,.35), 0 12px 28px rgba(0,0,0,.32);
   }
   *{box-sizing:border-box;}
-  body{
-    margin:0;
-    background:var(--page-bg);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    color:var(--ink);
-    padding:32px 16px 80px;
-  }
-  .mail-shell{
-    max-width:700px;
-    margin:0 auto;
-  }
-  .mail-meta-label{
-    font-size:12px;
-    color:var(--muted);
-    text-transform:uppercase;
-    letter-spacing:.06em;
-    margin:0 0 10px 4px;
-  }
-  .mail-card{
-    background:var(--card-bg);
-    border:1px solid var(--border);
-    border-radius:10px;
-    overflow:hidden;
-    box-shadow:0 1px 3px rgba(20,30,40,0.06);
-  }
-  .mail-header{
-    padding:20px 24px;
-    border-bottom:1px solid var(--border);
-  }
-  .mail-subject{
-    font-size:18px;
-    font-weight:600;
-    margin:0 0 14px;
-    color:var(--ink);
-  }
-  .mail-row{
-    display:flex;
-    gap:10px;
-    font-size:13.5px;
-    line-height:1.6;
-    color:var(--muted);
-  }
-  .mail-row b{
-    color:var(--ink);
-    font-weight:600;
-    min-width:44px;
-  }
-  .mail-avatar{
-    width:38px;height:38px;border-radius:50%;
-    background:var(--meridian-navy);
-    color:#fff;
-    display:flex;align-items:center;justify-content:center;
-    font-weight:700;font-size:14px;
-    flex-shrink:0;
-  }
-  .mail-from-block{display:flex;gap:12px;align-items:center;margin-bottom:14px;}
-  .mail-from-name{font-weight:600;font-size:14.5px;color:var(--ink);}
-  .mail-from-email{font-size:12.5px;color:var(--muted);}
-  .mail-body{
-    padding:28px 28px 8px;
-    font-size:15px;
-    line-height:1.65;
-  }
-  .mail-body p{margin:0 0 16px;}
-  .mail-body .lede{font-size:15.5px;}
-  .disorganize-block{
-    background:#f6f7f9;
-    border:1px solid var(--border);
-    border-radius:8px;
-    padding:16px 18px;
-    margin:20px 0;
-    font-size:14.5px;
-    color:var(--ink);
-  }
-  .disorganize-block .tally{
-    display:flex;
-    flex-wrap:wrap;
-    gap:6px 10px;
-    margin-top:10px;
-  }
-  .disorganize-block .chip{
-    background:#fff;
-    border:1px solid var(--border);
-    border-radius:999px;
-    padding:4px 10px;
-    font-size:12.5px;
-    color:var(--muted);
-  }
-  .cta-wrap{
-    text-align:left;
-    margin:26px 0 6px;
-  }
-  .cta-btn{
-    display:inline-block;
-    background:var(--meridian-accent);
-    color:#fff !important;
-    text-decoration:none;
-    font-weight:600;
-    font-size:15px;
-    padding:13px 26px;
-    border-radius:6px;
-  }
-  .cta-sub{
-    font-size:12.5px;
-    color:var(--muted);
-    margin-top:10px;
-  }
-  .fine-print{
-    padding:18px 28px 26px;
-    border-top:1px solid var(--border);
-    font-size:12px;
-    line-height:1.7;
-    color:var(--muted);
-    background:#fafbfc;
-  }
-  .fine-print b{color:var(--ink);}
-  .signoff{margin-top:22px;}
-  .signoff .name{font-weight:600;color:var(--ink);}
-  .signoff .title{color:var(--muted);font-size:13.5px;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'DM Sans',-apple-system,sans-serif;font-size:15px;line-height:1.55;}
+  h1,h2{font-family:'Playfair Display',serif;color:var(--navy-deep);margin:0;font-weight:700;text-wrap:balance;}
+  :root[data-theme="dark"] h1,:root[data-theme="dark"] h2,
+  :root:not([data-theme="light"]) h1,:root:not([data-theme="light"]) h2{color:var(--ink);}
+  @media (prefers-color-scheme:light){:root:not([data-theme="dark"]) h1,:root:not([data-theme="dark"]) h2{color:var(--navy-deep);}}
+  code{font-family:'IBM Plex Mono',ui-monospace,monospace;background:var(--surface-2);padding:1px 6px;border-radius:4px;font-size:13px;}
+  a{color:var(--navy);}
+  :root:not([data-theme="light"]) a,:root[data-theme="dark"] a{color:var(--gold);}
 
-  .review-rail{
-    max-width:700px;
-    margin:22px auto 0;
-    background:#fff9e8;
-    border:1px solid #eaddad;
-    border-radius:8px;
-    padding:14px 18px;
-    font-size:12.5px;
-    color:#6b5a1f;
-    line-height:1.6;
-  }
-  .review-rail b{color:#4d3f10;}
+  .shell{max-width:820px;margin:0 auto;padding:52px 28px 90px;}
+  .eyebrow{font-family:'IBM Plex Mono';font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:12px;}
+  header h1{font-size:clamp(28px,4vw,36px);margin-bottom:14px;}
+  header p{color:var(--ink-soft);max-width:64ch;font-size:15px;}
+  header{padding-bottom:30px;border-bottom:1px solid var(--border);margin-bottom:8px;}
+
+  .thesis{margin-top:20px;padding:18px 22px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:4px;box-shadow:var(--shadow);}
+  .thesis p{margin:0 0 8px;font-size:13.5px;color:var(--ink-soft);}
+  .thesis p:last-child{margin-bottom:0;}
+  .thesis b{color:var(--ink);}
+
+  section{margin-top:48px;}
+  .section-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:22px;}
+  .section-head h2{font-size:20px;}
+  .section-head span{font-family:'IBM Plex Mono';font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.05em;}
+
+  .path{position:relative;padding-left:28px;}
+  .path::before{content:'';position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:var(--border);}
+  .stop{position:relative;margin-bottom:26px;}
+  .stop:last-child{margin-bottom:0;}
+  .stop::before{content:'';position:absolute;left:-27px;top:5px;width:9px;height:9px;border-radius:50%;background:var(--gold);border:2px solid var(--paper);}
+  .stop-step{font-family:'IBM Plex Mono';font-size:11.5px;color:var(--ink-soft);margin-bottom:5px;}
+  .stop-title{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+  .stop-title h3{font-family:'DM Sans';font-size:15.5px;font-weight:700;color:var(--ink);}
+  .status{font-family:'IBM Plex Mono';font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border-radius:99px;white-space:nowrap;}
+  .status.live{color:var(--live);background:var(--live-bg);}
+  .status.local{color:var(--local);background:var(--local-bg);}
+  .stop-desc{font-size:13.5px;color:var(--ink-soft);margin-top:5px;max-width:64ch;line-height:1.6;}
+  .stop-link{font-size:13px;margin-top:6px;display:block;}
+
+  footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--border);color:var(--ink-soft);font-size:12px;}
 </style>
 </head>
 <body>
 
-<div class="mail-shell">
-  <p class="mail-meta-label">Skunkworks V2 &middot; Step 1 of the redesign &mdash; the employee's very first touchpoint</p>
-
-  <div class="mail-card">
-    <div class="mail-header">
-      <div class="mail-subject">One place for your whole financial life (2 minutes to set up)</div>
-      <div class="mail-from-block">
-        <div class="mail-avatar">DR</div>
-        <div>
-          <div class="mail-from-name">Dana Reyes</div>
-          <div class="mail-from-email">CEO, Meridian Industries &middot; dana.reyes@meridianindustries.com</div>
-        </div>
-      </div>
-      <div class="mail-row"><b>To:</b><span>All Meridian Industries Employees</span></div>
+<div class="shell">
+  <header>
+    <span class="eyebrow">AssetAlign Skunkworks · Internal Only</span>
+    <h1>V2 — the redesign track</h1>
+    <p>A full fork of the live skunkworks replicas, built to rework the product from the inside out around a real positioning shift — not a new mockup on the side. <a href="../">V1 stays exactly where it is</a> for side-by-side comparison; nothing here touches it.</p>
+    <div class="thesis">
+      <p><b>The shift being tested:</b> lead with AssetAlign as a decision-making / organization platform — the Financial Passport, "never fill out documents again," rewards running quietly underneath — instead of leading with advisor-matching.</p>
+      <p><b>Advisor-matching moves later</b>, not out: once AssetAlign actually knows the member, it progressively advocates for a real conversation with a fiduciary advisor. "Plan" is always paired with "fiduciary" — the platform organizes you and gets you <i>to</i> a plan; the advisor writes it.</p>
     </div>
+  </header>
 
-    <div class="mail-body">
-      <p class="lede">Hi team,</p>
+  <section>
+    <div class="section-head"><h2>Rework this from here</h2><span>Same order an employee hits it</span></div>
+    <div class="path">
 
-      <p>Quick one from me today.</p>
-
-      <p>Take a second and think about everywhere your money actually lives right now.</p>
-
-      <div class="disorganize-block">
-        A checking account. Maybe a savings account somewhere else. A 401(k) from this job, maybe another from a old one. A mortgage. A couple of insurance policies. A credit card or two you're tracking separately.
-        <div class="tally">
-          <span class="chip">Bank</span>
-          <span class="chip">401(k)</span>
-          <span class="chip">Brokerage</span>
-          <span class="chip">Mortgage</span>
-          <span class="chip">Life insurance</span>
-          <span class="chip">Auto insurance</span>
-          <span class="chip">Home insurance</span>
-          <span class="chip">Credit cards</span>
-        </div>
+      <div class="stop">
+        <div class="stop-step">Step 1</div>
+        <div class="stop-title"><h3>CEO announcement email</h3><span class="status local">Built — first draft</span></div>
+        <div class="stop-desc">The actual first thing an employee ever sees, before onboarding exists. Rebuilt around disorganization → get organized → a plan comes later, from a real fiduciary. ERISA-safe framing applied (voluntary/available, administered by AssetAlign, not the employer).</div>
+        <a class="stop-link" href="ceo-email/" target="_blank" rel="noopener">→ Read the email</a>
       </div>
 
-      <p>Most of us are juggling <strong>eight or more separate logins</strong> just to answer one simple question: "how am I actually doing?" That's not a personal failing &mdash; it's just how financial life works today. Nobody hands you a way to see it all in one place.</p>
-
-      <p><strong>AssetAlign is now available to everyone at Meridian Industries.</strong> It's a voluntary program, completely free to use, and it's run entirely by AssetAlign &mdash; not by us. We're simply making sure you know it exists. Whether or not you use it is entirely up to you.</p>
-
-      <p>Here's what it actually does: you tell it which providers you already use &mdash; takes about two minutes &mdash; and it gives you one real, organized picture of your financial life instead of six different apps. As you go, you'll pick up Align Credits along the way, which convert into real value with AssetAlign's partners.</p>
-
-      <p>And when you're ready &mdash; no pressure, no timeline &mdash; AssetAlign can also connect you with a vetted, independent, <strong>fiduciary</strong> financial advisor to build you an actual plan. That's there when it's useful to you. It's not something you have to do today, and it's not the first step. Getting organized is the first step. A plan is what comes next, once you know where you stand.</p>
-
-      <div class="cta-wrap">
-        <a class="cta-btn" href="#">Get organized &rarr;</a>
-        <div class="cta-sub">Takes about 2 minutes. Free. Optional. Your data, your choice.</div>
+      <div class="stop">
+        <div class="stop-step">Step 2</div>
+        <div class="stop-title"><h3>Onboarding — forked, ready to rework</h3><span class="status local">Full fork — untouched so far</span></div>
+        <div class="stop-desc">Exact copy of the real onboarding prototype. This is where the front door actually needs to change — reframing away from an advisor-first setup flow toward organizing/aggregating first, with matching offered later rather than up front.</div>
+        <a class="stop-link" href="onboarding-replica/" target="_blank" rel="noopener">→ Open the onboarding fork</a>
       </div>
 
-      <div class="signoff">
-        <p>Dana</p>
-        <div class="name">Dana Reyes</div>
-        <div class="title">CEO, Meridian Industries</div>
+      <div class="stop">
+        <div class="stop-step">Step 3</div>
+        <div class="stop-title"><h3>Dashboard — forked, ready to rework</h3><span class="status local">Full fork — untouched so far</span></div>
+        <div class="stop-desc">Exact copy of the real dashboard, Marketplace, and Vault. Once the front door changes, this is where the ongoing "the more we learn, the more we advocate for an advisor" progression needs to actually live — Nudge Cadence, the Starter Bundle, and the Financial Passport all already point this direction.</div>
+        <a class="stop-link" href="dashboard-replica/" target="_blank" rel="noopener">→ Open the dashboard fork</a>
       </div>
+
     </div>
+  </section>
 
-    <div class="fine-print">
-      <b>AssetAlign</b> is a voluntary financial wellness program made available to Meridian Industries employees at no cost. It is administered independently by AssetAlign, not by Meridian Industries. Participation is optional and has no effect on your employment or compensation. AssetAlign may be compensated by some of the partners referenced in its marketplace &mdash; full details are disclosed inside the platform.
-    </div>
-  </div>
-
-  <div class="review-rail">
-    <b>Design note (not part of the email itself):</b> this is the very first artifact in the V2 redesign track &mdash; the employee's actual first touchpoint, before onboarding even starts. It deliberately leads with disorganization &rarr; "get organized" &rarr; the Financial Passport promise, and only mentions an advisor once, at the very end, explicitly tied to the word "fiduciary" and framed as a later step, not the ask. ERISA-safe framing applied throughout (voluntary / available / administered by AssetAlign, never "we're giving you" or "your benefit from us"). Not yet reviewed by counsel or Ryan &mdash; flagging per standing practice on anything employee-comms-adjacent.
-  </div>
+  <footer>Part of assetalign-skunkworks — public repo, not indexed, not linked from any real AssetAlign site.</footer>
 </div>
 
 </body>
