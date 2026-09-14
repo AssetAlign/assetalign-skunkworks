@@ -3420,6 +3420,7 @@
     if (session.autoInsuranceDone) rows.push({ label: 'The Zebra — auto insurance info submitted', pts: '+10', earn: true });
     if (session.lifeQuoteDone) rows.push(earnRow('lifequote', 'PolicyGenius — term life quote submitted', 5));
     if (session.beneficiaryAuditDone) rows.push(earnRow('beneficiary', 'Beneficiary audit started', 5));
+    if (session.refiLeadSent) rows.push(earnRow('refilead', 'Mortgage refinance lead sent to Kevin', 5));
     if (session.estatePlanningDone) rows.push({ label: 'MyGoodTrust — Will & Trust Setup', pts: '-139', earn: false });
     if (session.estateRenewalDone) rows.push({ label: 'MyGoodTrust — Year 2 renewal', pts: '-39', earn: false });
     if (session.lifeInsurancePaid) rows.push({ label: 'Life Insurance — annual payment', pts: '-480', earn: false });
