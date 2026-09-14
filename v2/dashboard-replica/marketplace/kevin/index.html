@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AssetAlign — Your Align Credits</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #0D3B66;
+      --navy-mid: #164d82;
+      --yellow: #F4D35E;
+      --yellow-bg: #fefae8;
+      --yellow-dark: #c9a227;
+      --white: #ffffff;
+      --gray: #f7f8fa;
+      --border: #e8e8e8;
+      --text: #1a2d42;
+      --muted: #6b7c93;
+      --green: #2d8a4e;
+      --nav-h: 70px;
+    }
+    body { font-family: 'Outfit', sans-serif; background: #f5f6f8; color: var(--text); min-height: 100vh; }
+
+    /* ── NAV ── */
+    nav {
+      background: rgba(255,255,255,0.97);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      height: 70px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px; position: sticky; top: 0; z-index: 100;
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+    .nav-logo-name { font-size: 18px; font-weight: 600; color: var(--navy); letter-spacing: -0.01em; }
+    .nav-logo-name em { font-style: normal; color: var(--yellow-dark); }
+    .nav-links { display: flex; align-items: center; gap: 2px; list-style: none; }
+    .nav-links a { font-size: 14px; font-weight: 500; color: var(--muted); text-decoration: none; padding: 7px 13px; border-radius: 8px; transition: color 0.15s, background 0.15s; white-space: nowrap; }
+    .nav-links a:hover { color: var(--navy); background: #f2f4f6; }
+    .nav-links a.active { color: var(--navy); font-weight: 600; background: #f2f4f6; }
+    /* 2026-09-09 — real bug, per Alex testing live on his phone: this nav
+       (logo + up to 5 links + credits pill + name + Logout) had no mobile
+       treatment at all here, unlike assetalign-dashboard-v2/index.html
+       which got this exact fix on 2026-09-08 from real iPhone screenshots
+       ("the 25 credits is over the whole marketplace tab on top and
+       blocking the rest") — that fix was never copied to this page. Same
+       fix, ported verbatim: nav-links becomes its own scrollable strip:
+       the credits pill (what the tutorial spotlights first) is guaranteed
+       to stay on-screen via flex-shrink:0 on nav-right, least-essential
+       bits (full name, Logout) drop to save room. */
+    @media (max-width: 700px) {
+      nav { flex-wrap: wrap; height: auto; padding: 8px 12px 0; row-gap: 6px; }
+      .nav-logo-name { font-size: 14px; }
+      .nav-right { order: 2; flex-shrink: 0; gap: 8px; }
+      .nav-links {
+        order: 3; flex: 0 0 100%; width: 100%; gap: 4px;
+        padding: 8px 0; margin-top: 2px; border-top: 1px solid var(--border);
+      }
+      .nav-links li { flex: 1; min-width: 0; }
+      .nav-links a { display: block; padding: 6px 2px; font-size: 10.5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .nav-user-name, .nav-link-muted { display: none; }
+      .points-pill { font-size: 11px; padding: 5px 9px; }
+    }
+    /* 2026-09-04, per Alex: "the marketplace maybe to be in the middle and
+       potentially highlighted a bit more than My Plan My Advisor Credits
+       etc.. this is going to be the central place where people associate
+       with us." A permanent gold-tinted treatment (not the solid-fill look
+       already dialed back elsewhere per Alex's "more discreet" note) so it
+       reads as the one destination-level item even before it's active. */
+    .nav-links a.nav-marketplace { color: var(--navy); font-weight: 700; background: rgba(244,211,94,0.14); border: 1px solid rgba(244,211,94,0.4); }
+    .nav-links a.nav-marketplace:hover { background: rgba(244,211,94,0.24); }
+    .nav-links a.nav-marketplace.active { background: rgba(244,211,94,0.3); border-color: var(--yellow); }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .points-pill {
+      background: var(--yellow); color: var(--navy); font-size: 13px; font-weight: 600;
+      padding: 6px 14px; border-radius: 20px; position: relative; cursor: default;
+    }
+    .points-badge {
+      position: absolute; top: -6px; right: -6px; background: #e53e3e; color: white;
+      font-size: 10px; font-weight: 600; width: 18px; height: 18px;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    }
+    .nav-link-btn { font-size: 13px; color: var(--navy); text-decoration: none; font-weight: 600; }
+    .nav-link-muted { font-size: 13px; color: var(--muted); text-decoration: none; }
+    .nav-user { display: flex; align-items: center; gap: 9px; }
+    .nav-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--navy); color: var(--yellow); font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .nav-user-name { font-size: 13px; font-weight: 600; color: var(--navy); }
+
+    /* ── ICON BAR ── */
+    .icon-bar {
+      background: var(--navy); padding: 0 40px; height: 54px;
+      display: flex; align-items: center; justify-content: center; gap: 64px;
+    }
+    .icon-bar-item {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.55);
+      padding: 6px 12px; border-radius: 6px; border: 2px solid transparent; cursor: pointer;
+    }
+    .icon-bar-item.active { color: var(--yellow); border-color: var(--yellow); }
+
+    /* ── PAGE ── */
+    .page { max-width: 960px; margin: 0 auto; padding: 40px 24px 120px; }
+
+    /* ── HERO CREDITS CARD ── */
+    .credits-hero {
+      background: var(--navy);
+      border: 2px solid rgba(244,211,94,0.45);
+      border-radius: 20px;
+      padding: 36px 40px;
+      margin-bottom: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+    .credits-hero::before {
+      content: '';
+      position: absolute; top: -60px; right: -60px;
+      width: 280px; height: 280px;
+      border-radius: 50%;
+      border: 2px solid rgba(244,211,94,0.07);
+    }
+    .credits-hero-inner { position: relative; z-index: 1; }
+
+    /* ── DASHBOARD TOP ROW ── */
+    .dash-top-row { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; }
+    .dash-welcome { font-size: 24px; font-weight: 600; color: var(--white); margin-top: 6px; }
+    .dash-welcome em { font-style: normal; color: var(--yellow); }
+    .dash-credits-count { text-align: right; perspective: 400px; }
+    .dash-credits-label { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 8px; }
+    /* Real coin badge (2026-09-02) — replaces the earlier version where
+       just the flat number text spun on its own axis, which didn't
+       actually read as a coin. Alex: "maybe the credits should be an
+       actual coin.. and the spinning coin or whatever will be more of
+       what i am looking for." Reuses the same gold radial-gradient/
+       shadow language already established for the "+10" reward toast's
+       coin (.credit-toast-coin) so the two read as the same object. */
+    .dash-credits-coin {
+      width: 96px; height: 96px; margin-left: auto; border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #fff5cc, #F4D35E 55%, #c9a02e);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 10px 26px rgba(0,0,0,0.35), inset 0 0 0 4px rgba(255,255,255,0.35), inset 0 0 0 7px rgba(122,85,18,0.22);
+      transform-style: preserve-3d;
+    }
+    .dash-credits-coin.coin-flip { animation: coinFlip 1.1s cubic-bezier(.34,1.4,.64,1); }
+    .dash-credits-num { font-size: 30px; font-weight: 800; color: #7a5512; line-height: 1; }
+    @keyframes coinFlip {
+      0%   { transform: rotateY(0deg) scale(1); text-shadow: none; }
+      15%  { transform: rotateY(360deg) scale(1.06); text-shadow: 0 0 12px rgba(244,211,94,0.5); }
+      30%  { transform: rotateY(720deg) scale(1.1); text-shadow: 0 0 18px rgba(244,211,94,0.7); }
+      48%  { transform: rotateY(990deg) scale(1.14); text-shadow: 0 0 20px rgba(244,211,94,0.8); }
+      52%  { transform: rotateY(990deg) scale(1.14); text-shadow: 0 0 20px rgba(244,211,94,0.8); }
+      75%  { transform: rotateY(1260deg) scale(1.06); text-shadow: 0 0 12px rgba(244,211,94,0.5); }
+      100% { transform: rotateY(1440deg) scale(1); text-shadow: none; }
+    }
+    .credit-toast {
+      position: fixed; top: 90px; right: 5vw; z-index: 3000;
+      display: flex; align-items: center; gap: 10px;
+      pointer-events: none; opacity: 0;
+    }
+    .credit-toast.show { animation: creditToastPop 2.1s cubic-bezier(.25,.9,.35,1) forwards; }
+    .credit-toast-coin {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #fff5cc, #F4D35E 55%, #c9a02e);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 800; color: #7a5512;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3), inset 0 0 0 3px rgba(255,255,255,0.35);
+      animation: creditCoinSpin 0.9s ease;
+    }
+    .credit-toast-label {
+      font-size: 26px; font-weight: 800; color: #F4D35E;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.45);
+      font-family: 'Outfit', sans-serif;
+    }
+    @keyframes creditCoinSpin {
+      0%   { transform: rotateY(0deg) scale(0.3); }
+      55%  { transform: rotateY(720deg) scale(1.2); }
+      100% { transform: rotateY(1080deg) scale(1); }
+    }
+    @keyframes creditToastPop {
+      0%   { opacity: 0; transform: translateY(8px) scale(0.7); }
+      12%  { opacity: 1; transform: translateY(0) scale(1.08); }
+      22%  { transform: scale(1); }
+      78%  { opacity: 1; transform: translateY(-4px) scale(1); }
+      100% { opacity: 0; transform: translateY(-30px) scale(0.95); }
+    }
+
+    /* ── GOAL CARD ── */
+    .goal-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 26px 28px; }
+    .goal-card-top { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+    .goal-card-icon { font-size: 36px; line-height: 1; }
+    .goal-tag { font-size: 10px; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 5px; }
+    .goal-name { font-size: 20px; font-weight: 600; color: var(--white); }
+    .goal-pct-badge { margin-left: auto; font-size: 32px; font-weight: 600; color: var(--yellow); flex-shrink: 0; }
+    .goal-bar-wrap { height: 14px; background: rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
+    .goal-bar-fill { height: 100%; width: 0; background: var(--yellow); border-radius: 8px; transition: width 1.1s ease; }
+    .goal-bar-stats { display: flex; justify-content: space-between; font-size: 12px; color: rgba(255,255,255,0.45); margin-bottom: 18px; }
+    .goal-bar-stats strong { color: rgba(255,255,255,0.8); font-weight: 600; }
+    .goal-next-step { background: rgba(244,211,94,0.07); border: 1px solid rgba(244,211,94,0.2); border-radius: 10px; padding: 13px 16px; font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.65; }
+    .goal-next-step strong { color: var(--yellow); }
+
+    .hero-left .eyebrow {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--yellow); margin-bottom: 10px; display: flex; align-items: center; gap: 7px;
+    }
+    .hero-left .eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--yellow); }
+    .hero-left h2 { font-size: 26px; font-weight: 600; color: var(--white); line-height: 1.25; margin-bottom: 12px; }
+    .hero-left h2 em { font-style: normal; color: var(--yellow); }
+    .hero-left p { font-size: 14px; color: rgba(255,255,255,0.55); line-height: 1.7; max-width: 360px; margin-bottom: 24px; }
+
+    .credit-balance-row { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 20px; }
+    .credit-balance-num { font-size: 56px; font-weight: 600; color: var(--yellow); line-height: 1; }
+    .credit-balance-label { font-size: 14px; color: rgba(255,255,255,0.5); margin-bottom: 8px; font-weight: 600; }
+
+    .credit-milestones { display: flex; flex-direction: column; gap: 10px; }
+    .milestone-row { display: flex; align-items: center; gap: 10px; }
+    .milestone-dot {
+      width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 10px;
+    }
+    .milestone-dot.done { background: var(--yellow); color: var(--navy); }
+    .milestone-dot.pending { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.3); border: 1.5px solid rgba(255,255,255,0.2); }
+    .milestone-text { font-size: 13px; color: rgba(255,255,255,0.7); }
+    .milestone-text.done { color: rgba(255,255,255,0.9); }
+    .milestone-pts { margin-left: auto; font-size: 11px; font-weight: 600; color: rgba(244,211,94,0.7); }
+
+    /* ── HOUSE CHART ── */
+    .house-chart-wrap { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 24px; }
+    .house-chart-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+      color: rgba(255,255,255,0.35); margin-bottom: 16px;
+    }
+    .house-goal-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .house-goal-title { font-size: 14px; font-weight: 600; color: var(--white); }
+    .house-goal-pct { font-size: 13px; font-weight: 600; color: var(--yellow); }
+    .house-track {
+      height: 10px; background: rgba(255,255,255,0.1); border-radius: 6px;
+      overflow: hidden; margin-bottom: 10px; position: relative;
+    }
+    .house-fill {
+      height: 100%; border-radius: 6px; background: var(--yellow);
+      width: 35%; transition: width 1s ease;
+    }
+    .house-markers { display: flex; justify-content: space-between; }
+    .house-marker { font-size: 10px; color: rgba(255,255,255,0.3); }
+    .house-marker.active { color: var(--yellow); font-weight: 600; }
+
+    .house-icon-row {
+      display: flex; align-items: center; justify-content: center;
+      gap: 6px; margin-top: 20px;
+    }
+    .house-step {
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      position: relative;
+    }
+    .house-step-icon {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+    .house-step-icon.done { background: var(--yellow); }
+    .house-step-icon.active { background: rgba(244,211,94,0.2); border: 2px solid var(--yellow); }
+    .house-step-icon.future { background: rgba(255,255,255,0.07); }
+    .house-step-label { font-size: 9px; color: rgba(255,255,255,0.4); text-align: center; max-width: 52px; line-height: 1.3; }
+    .house-step-label.done { color: rgba(244,211,94,0.9); }
+    .house-connector {
+      width: 20px; height: 2px; background: rgba(255,255,255,0.1);
+      align-self: flex-start; margin-top: 17px;
+    }
+    .house-connector.done { background: rgba(244,211,94,0.4); }
+
+    /* ── WHAT ELSE SECTION ── */
+    .what-else-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .what-else-header h3 { font-size: 20px; font-weight: 600; color: var(--navy); }
+    .what-else-header p { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .what-else-header .credits-tag {
+      background: var(--yellow-bg); border: 1px solid var(--yellow-dark);
+      border-radius: 8px; padding: 6px 14px;
+      font-size: 12px; font-weight: 600; color: var(--yellow-dark);
+    }
+
+    .options-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+    .option-card {
+      background: var(--white); border: 1.5px solid var(--border);
+      border-radius: 14px; padding: 24px 20px;
+      cursor: pointer; transition: border-color 0.15s, transform 0.15s;
+      position: relative; overflow: hidden;
+    }
+    .option-card:hover { border-color: var(--yellow-dark); transform: translateY(-2px); }
+    .option-card.featured { border-color: var(--yellow); background: var(--yellow-bg); }
+    .option-card.featured::before {
+      content: 'Quick Win';
+      position: absolute; top: 12px; right: 12px;
+      background: var(--yellow); color: var(--navy);
+      font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 4px;
+    }
+
+    .option-icon {
+      width: 44px; height: 44px; border-radius: 10px; background: var(--navy);
+      display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
+    }
+    .option-card h4 { font-size: 15px; font-weight: 600; color: var(--navy); margin-bottom: 6px; }
+    .option-card p { font-size: 12px; color: var(--muted); line-height: 1.65; margin-bottom: 14px; }
+    .option-earn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--navy); color: var(--yellow);
+      font-size: 11px; font-weight: 600; padding: 5px 12px;
+      border-radius: 6px; margin-bottom: 12px;
+    }
+    .option-cta {
+      font-size: 13px; font-weight: 600; color: var(--navy);
+      display: flex; align-items: center; gap: 5px; text-decoration: none;
+    }
+    .option-cta:hover { color: var(--yellow-dark); }
+    .option-credits-cost {
+      font-size: 11px; color: var(--muted);
+      display: flex; align-items: center; gap: 4px;
+      margin-top: 8px;
+    }
+
+    /* ── COMMITMENT CARD ── */
+    .commitment-card {
+      background: var(--navy); border-radius: 20px; padding: 36px 40px;
+      margin-top: 28px; position: relative; overflow: hidden;
+    }
+    .commitment-card::before {
+      content: '';
+      position: absolute; bottom: -40px; right: -40px;
+      width: 200px; height: 200px; border-radius: 50%;
+      border: 2px solid rgba(244,211,94,0.08);
+    }
+    .commitment-inner { display: grid; grid-template-columns: 1fr 340px; gap: 48px; align-items: start; position: relative; z-index: 1; }
+
+    .commitment-left .tag {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--yellow); margin-bottom: 14px;
+    }
+    .commitment-left h3 { font-size: 22px; font-weight: 600; color: var(--white); line-height: 1.3; margin-bottom: 12px; }
+    .commitment-left h3 em { font-style: normal; color: var(--yellow); }
+    .commitment-left .pitch {
+      font-size: 14px; color: rgba(255,255,255,0.62); line-height: 1.75; margin-bottom: 20px;
+    }
+    .commitment-facts { display: flex; flex-direction: column; gap: 10px; }
+    .commitment-fact {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.55;
+    }
+    .fact-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--yellow); flex-shrink: 0; margin-top: 6px; }
+
+    .commitment-form {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px; padding: 28px;
+    }
+    .form-title { font-size: 15px; font-weight: 600; color: var(--white); margin-bottom: 6px; }
+    .form-subtitle { font-size: 12px; color: rgba(255,255,255,0.45); margin-bottom: 20px; line-height: 1.5; }
+
+    .commit-field { margin-bottom: 14px; }
+    .commit-label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+      color: rgba(255,255,255,0.5); margin-bottom: 6px; display: block;
+    }
+    .commit-input {
+      width: 100%; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px; padding: 11px 14px;
+      font-family: 'Outfit', sans-serif; font-size: 14px; color: var(--white);
+      outline: none; transition: border-color 0.15s;
+    }
+    .commit-input::placeholder { color: rgba(255,255,255,0.25); }
+    .commit-input:focus { border-color: var(--yellow); }
+
+    .commit-select {
+      width: 100%; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px; padding: 11px 14px;
+      font-family: 'Outfit', sans-serif; font-size: 14px; color: rgba(255,255,255,0.7);
+      outline: none; cursor: pointer;
+      -webkit-appearance: none; transition: border-color 0.15s;
+    }
+    .commit-select:focus { border-color: var(--yellow); }
+    .commit-select option { background: var(--navy); color: var(--white); }
+
+    .earn-badge {
+      background: rgba(244,211,94,0.12); border: 1px solid rgba(244,211,94,0.3);
+      border-radius: 8px; padding: 10px 14px;
+      display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+    }
+    .earn-badge-icon { font-size: 18px; }
+    .earn-badge-text { font-size: 12px; color: rgba(255,255,255,0.7); line-height: 1.4; }
+    .earn-badge-text strong { color: var(--yellow); }
+
+    .btn-commit {
+      width: 100%; background: var(--yellow); color: var(--navy);
+      font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600;
+      padding: 13px; border-radius: 8px; border: none; cursor: pointer;
+      transition: background 0.15s; margin-bottom: 8px;
+    }
+    .btn-commit:hover { background: #f5c84a; }
+    .btn-skip { font-size: 11px; color: rgba(255,255,255,0.3); text-align: center; cursor: pointer; }
+    .btn-skip:hover { color: rgba(255,255,255,0.5); }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: var(--navy); color: var(--white); font-size: 14px; font-weight: 600;
+      padding: 14px 24px; border-radius: 10px; border-left: 4px solid var(--yellow);
+      opacity: 0; transition: all 0.3s; z-index: 999; white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── SUCCESS STATE ── */
+    .success-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(13,59,102,0.88);
+      z-index: 500; align-items: center; justify-content: center;
+    }
+    .success-overlay.show { display: flex; }
+    .success-box {
+      background: var(--white); border-radius: 20px; padding: 48px 44px;
+      text-align: center; max-width: 420px; width: 90%;
+    }
+    .success-box .check { font-size: 48px; margin-bottom: 16px; }
+    .success-box h3 { font-size: 22px; font-weight: 600; color: var(--navy); margin-bottom: 10px; }
+    .success-box p { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 24px; }
+    .success-credits {
+      background: var(--yellow-bg); border: 1.5px solid var(--yellow-dark);
+      border-radius: 12px; padding: 16px; margin-bottom: 24px;
+      font-size: 15px; font-weight: 600; color: var(--navy);
+    }
+    .btn-success {
+      background: var(--navy); color: var(--white);
+      font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600;
+      padding: 13px 32px; border-radius: 8px; border: none; cursor: pointer;
+    }
+
+    /* ── QUICK ACTIONS ── */
+    .quick-actions { display: flex; gap: 10px; margin-bottom: 28px; flex-wrap: wrap; }
+    .quick-action-btn { display: flex; align-items: center; gap: 8px; padding: 10px 18px; background: var(--white); border: 1.5px solid var(--border); border-radius: 24px; font-size: 13px; font-weight: 600; color: var(--navy); cursor: pointer; transition: all 0.15s; white-space: nowrap; font-family: 'Outfit', sans-serif; }
+    .quick-action-btn:hover { border-color: var(--navy); background: #f4f6ff; }
+    .quick-action-btn.primary { background: var(--navy); color: var(--white); border-color: var(--navy); }
+    .quick-action-btn.primary:hover { background: var(--navy-mid); }
+
+    /* ── TWO-COL ROW ── */
+    .dash-two-col { display: grid; grid-template-columns: 3fr 2fr; gap: 20px; margin-bottom: 28px; }
+
+    /* ── ADVISOR CARD ── */
+    .advisor-card { background: var(--white); border: 1.5px solid var(--border); border-radius: 16px; padding: 24px; }
+    .advisor-card-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+    .advisor-avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--navy); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .advisor-name { font-size: 16px; font-weight: 700; color: var(--navy); }
+    .advisor-title { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .advisor-live { font-size: 12px; color: #16a34a; font-weight: 600; margin-top: 5px; display: flex; align-items: center; gap: 5px; }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; display: inline-block; }
+    .advisor-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; background: var(--gray); border-radius: 10px; padding: 14px; margin-bottom: 16px; }
+    .advisor-stat-num { font-size: 18px; font-weight: 700; color: var(--navy); }
+    .advisor-stat-label { font-size: 10px; color: var(--muted); margin-top: 2px; line-height: 1.3; }
+    .advisor-actions { display: flex; gap: 10px; }
+    .btn-book { flex: 1; padding: 10px; background: var(--navy); color: var(--white); border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Outfit', sans-serif; transition: background 0.15s; }
+    .btn-book:hover { background: var(--navy-mid); }
+    .btn-msg { padding: 10px 16px; background: var(--white); color: var(--navy); border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Outfit', sans-serif; transition: border-color 0.15s; }
+    .btn-msg:hover { border-color: var(--navy); }
+
+    /* ── MOVEMENT MORTGAGE PARTNER PROFILE ── */
+    .mp-section-title { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 10px; }
+    .mp-tag { display: inline-block; background: var(--gray); color: var(--navy); font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 999px; }
+    .mp-award { display: inline-flex; align-items: center; gap: 5px; background: var(--yellow-bg); border: 1px solid var(--yellow-dark); color: var(--navy); font-size: 11px; font-weight: 600; padding: 6px 12px; border-radius: 999px; }
+
+    /* ── TIER / STATUS CARD ── */
+    .status-card { background: var(--navy); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; }
+    .status-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(244,211,94,0.12); border: 1px solid rgba(244,211,94,0.3); border-radius: 20px; padding: 5px 12px; font-size: 11px; font-weight: 600; color: var(--yellow); margin-bottom: 14px; width: fit-content; }
+    .status-tier-name { font-size: 24px; font-weight: 700; color: var(--white); margin-bottom: 4px; }
+    .status-tier-sub { font-size: 12px; color: rgba(255,255,255,0.45); margin-bottom: 16px; line-height: 1.5; }
+    .status-tier-sub strong { color: var(--yellow); }
+    .status-bar-wrap { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-bottom: 8px; overflow: hidden; }
+    .status-bar-fill { height: 100%; width: 58%; background: var(--yellow); border-radius: 4px; }
+    .status-bar-labels { display: flex; justify-content: space-between; font-size: 10px; color: rgba(255,255,255,0.35); margin-bottom: 18px; }
+    .status-perks { display: flex; flex-direction: column; gap: 9px; }
+    .status-perks-label { font-size: 9px; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 2px; }
+    .status-perk { display: flex; align-items: center; gap: 8px; font-size: 12px; color: rgba(255,255,255,0.6); }
+    .perk-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--yellow); flex-shrink: 0; }
+
+    /* ── CREDIT PROJECTION ── */
+    .credit-projection {
+      background: linear-gradient(135deg, #0a2540 0%, var(--navy) 60%, var(--navy-mid) 100%);
+      border-radius: 20px; padding: 36px 40px; margin-bottom: 28px;
+      position: relative; overflow: hidden;
+      box-shadow: 0 6px 24px rgba(13,59,102,0.18);
+    }
+    .credit-projection::before {
+      content: ''; position: absolute; top: -40px; right: -40px;
+      width: 280px; height: 280px;
+      background: radial-gradient(circle, rgba(244,211,94,0.13), transparent 65%);
+      pointer-events: none;
+    }
+    .cp-eyebrow {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--yellow); margin-bottom: 14px;
+      padding: 5px 12px; border-radius: 20px;
+      background: rgba(244,211,94,0.12); border: 1px solid rgba(244,211,94,0.28);
+    }
+    .cp-hero-line { font-size: 15px; color: rgba(255,255,255,0.7); margin-bottom: 6px; font-weight: 500; }
+    .cp-hero-line em { color: var(--white); font-style: normal; font-weight: 600; }
+    .cp-hero-number {
+      font-size: 72px; font-weight: 700; color: var(--yellow);
+      letter-spacing: -0.035em; line-height: 1; margin: 6px 0 14px;
+      text-shadow: 0 2px 30px rgba(244,211,94,0.18);
+    }
+    .cp-goal-payoff {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 14px; color: var(--white); font-weight: 600;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+      padding: 10px 16px; border-radius: 10px;
+      margin-bottom: 28px;
+    }
+    .cp-goal-payoff strong { color: var(--yellow); font-weight: 700; }
+    /* Structured outcome table (2026-09-03) — replaced the interactive AUM
+       slider + 3/5/10yr tile comparison + assumptions dropdown entirely.
+       Alex: "when i think about airline points or hotel points.. i think
+       they have it more structured.. like this is what it could get you."
+       No input, no toggle — just a flat reference table, same spirit as an
+       airline redemption chart. See renderCreditProjection() for the math;
+       the underlying 5-year calculation (creditsThroughYear) is unchanged,
+       only the presentation below the hero number is new. */
+    .cp-outcomes {
+      padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);
+      margin-bottom: 18px;
+    }
+    .cp-outcomes-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      color: rgba(255,255,255,0.45); margin-bottom: 14px;
+    }
+    .cp-outcome-row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .cp-outcome-row:last-child { border-bottom: none; }
+    .cp-outcome-icon {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(244,211,94,0.12); border: 1px solid rgba(244,211,94,0.28);
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .cp-outcome-text { flex: 1; min-width: 0; }
+    .cp-outcome-title { font-size: 14px; font-weight: 600; color: var(--white); }
+    .cp-outcome-sub { font-size: 11.5px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+    .cp-outcome-value { font-size: 20px; font-weight: 700; color: var(--yellow); letter-spacing: -0.01em; flex-shrink: 0; white-space: nowrap; }
+    .cp-citations { font-size: 10px; color: rgba(255,255,255,0.45); line-height: 1.6; max-width: 580px; }
+    .cp-citations strong { color: rgba(255,255,255,0.7); font-weight: 600; }
+
+    /* ── FINANCIAL PASSPORT PREVIEW ── */
+    .passport-preview { background: var(--white); border: 1.5px solid var(--border); border-radius: 16px; padding: 20px 22px; margin-bottom: 20px; }
+    .passport-preview-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+    .passport-preview-eyebrow { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 3px; }
+    .passport-preview-sub { font-size: 12px; color: var(--muted); line-height: 1.5; max-width: 380px; }
+    .passport-preview-score { flex-shrink: 0; background: var(--yellow-bg); border: 1px solid var(--yellow-dark); color: var(--navy); font-weight: 700; font-size: 12px; padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
+    .passport-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .passport-row:last-child { border-bottom: none; }
+    .pp-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+    .pp-label { font-size: 12.5px; color: var(--navy); font-weight: 600; flex: 1; }
+    .pp-status { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+    .pp-status.pp-known { background: #eaf6ee; color: var(--green); }
+    .pp-status.pp-unknown { background: #f4f5f7; color: var(--muted); }
+    .passport-preview-cta { display: block; text-align: right; margin-top: 12px; font-size: 12px; font-weight: 600; color: var(--navy); text-decoration: none; }
+    .passport-preview-cta:hover { text-decoration: underline; }
+
+    @media (max-width: 768px) {
+      .credit-projection { padding: 28px 22px; }
+      .cp-hero-number { font-size: 52px; }
+    }
+
+    /* ── EXCHANGE TEASER ── */
+    .exchange-teaser { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%); border-radius: 16px; padding: 22px 26px; margin-bottom: 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; transition: transform 0.15s; }
+    .exchange-teaser:hover { transform: translateY(-1px); }
+    .exchange-teaser-left { display: flex; align-items: center; gap: 18px; flex: 1; }
+    .exchange-teaser-icon { width: 48px; height: 48px; border-radius: 12px; background: rgba(244,211,94,0.15); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .exchange-teaser-text h4 { font-size: 16px; font-weight: 700; color: var(--white); margin-bottom: 4px; }
+    .exchange-teaser-text p { font-size: 13px; color: rgba(255,255,255,0.65); line-height: 1.5; }
+    .exchange-teaser-arrow { color: var(--yellow); font-size: 22px; font-weight: 600; flex-shrink: 0; }
+    @media (max-width: 768px) { .exchange-teaser { flex-direction: column; align-items: flex-start; } }
+
+    /* ── NEW EXCHANGE (outcome-led marketplace) ── */
+    .ex-wrap { padding-top: 6px; }
+    .ex-header-new { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 24px; flex-wrap: wrap; }
+    .ex-eyebrow {
+      display: inline-flex; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--yellow); margin-bottom: 10px;
+      padding: 5px 12px; border-radius: 20px;
+      background: rgba(244,211,94,0.12); border: 1px solid rgba(244,211,94,0.28);
+    }
+    .ex-title { font-size: 26px; font-weight: 700; color: var(--white); letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 8px; max-width: 620px; }
+    .ex-sub { font-size: 14px; color: rgba(255,255,255,0.68); line-height: 1.55; max-width: 580px; }
+    .ex-credits-badge {
+      background: var(--yellow); color: var(--navy); padding: 10px 18px; border-radius: 24px;
+      font-size: 13px; font-weight: 700; white-space: nowrap;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+
+    /* Recommended for you */
+    .ex-recommended { margin-bottom: 36px; }
+    .ex-recommended-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--yellow-dark); margin-bottom: 10px;
+    }
+    .ex-recommended-card {
+      background: linear-gradient(135deg, #fefae8 0%, #faf3d4 100%);
+      border: 2px solid var(--yellow); border-radius: 16px;
+      padding: 22px 24px; display: flex; align-items: center; gap: 18px;
+      cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .ex-recommended-card:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(244,211,94,0.2); }
+    .ex-rec-icon {
+      width: 56px; height: 56px; border-radius: 14px;
+      background: var(--white); display: flex; align-items: center; justify-content: center;
+      font-size: 26px; flex-shrink: 0;
+    }
+    .ex-rec-text { flex: 1; }
+    .ex-rec-text h4 { font-size: 17px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+    .ex-rec-text p { font-size: 13px; color: var(--text); line-height: 1.55; }
+    .ex-rec-arrow { font-size: 26px; color: var(--yellow-dark); font-weight: 700; flex-shrink: 0; }
+
+    /* Lane sections */
+    .ex-lane { margin-bottom: 36px; scroll-margin-top: 100px; }
+    .ex-lane-header { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+    .ex-lane-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      background: var(--navy); color: var(--yellow);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+    }
+    .ex-lane.spend-lane .ex-lane-icon { background: var(--yellow); color: var(--navy); }
+    .ex-lane-header h3 { font-size: 19px; font-weight: 700; color: var(--navy); letter-spacing: -0.01em; }
+    .ex-lane-header p { font-size: 13px; color: var(--muted); margin-top: 2px; line-height: 1.5; }
+    .ex-card-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+    }
+    .ex-card-v2 {
+      background: var(--white); border: 1.5px solid var(--border); border-radius: 14px;
+      padding: 20px 22px; cursor: pointer; transition: border-color 0.15s, transform 0.15s;
+      display: flex; flex-direction: column;
+    }
+    .ex-card-v2:hover { border-color: var(--navy); transform: translateY(-1px); }
+    .ex-card-v2.featured { border-color: var(--yellow); background: linear-gradient(180deg, #fffefa 0%, var(--white) 100%); }
+    .ex-card-v2.coming-soon { opacity: 0.7; cursor: not-allowed; }
+    .ex-card-v2.coming-soon:hover { border-color: var(--border); transform: none; }
+    .ex-card-v2-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+    .ex-card-v2-partner { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+    .ex-card-v2-soon-badge {
+      font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+      background: var(--muted); color: var(--white); padding: 3px 8px; border-radius: 10px; white-space: nowrap;
+    }
+    .ex-card-v2 h4 { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 6px; line-height: 1.3; }
+    .ex-card-v2 p { font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; flex: 1; }
+    .ex-card-v2-footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .ex-pill-earn {
+      font-size: 11px; font-weight: 700; color: #15803d;
+      background: #dcfce7; padding: 4px 10px; border-radius: 12px;
+    }
+    .ex-pill-spend {
+      font-size: 11px; font-weight: 700; color: var(--yellow-dark);
+      background: var(--yellow-bg); padding: 4px 10px; border-radius: 12px;
+    }
+    .ex-card-v2-cta { font-size: 12px; font-weight: 700; color: var(--navy); }
+
+    /* Coming-soon strip */
+    .ex-coming-strip {
+      background: var(--gray); border: 1.5px solid var(--border); border-radius: 18px;
+      padding: 26px 28px; margin-bottom: 12px;
+    }
+    .ex-coming-header { margin-bottom: 18px; }
+    .ex-coming-header h4 { font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+    .ex-coming-header p { font-size: 12px; color: var(--muted); line-height: 1.55; }
+    .ex-coming-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+    }
+    .ex-coming-tile {
+      background: var(--white); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; display: flex; flex-direction: column; gap: 8px;
+      cursor: pointer; transition: border-color 0.15s; font-family: 'Outfit', sans-serif;
+      text-align: left; border: 1px solid var(--border);
+    }
+    .ex-coming-tile:hover { border-color: var(--navy); }
+    .ex-coming-tile-top { display: flex; align-items: center; gap: 8px; }
+    .ex-coming-tile-icon { font-size: 18px; }
+    .ex-coming-tile-name { font-size: 12px; font-weight: 700; color: var(--navy); flex: 1; }
+    .ex-coming-tile-votes { font-size: 10px; color: var(--muted); font-weight: 600; }
+    .ex-coming-tile-action { font-size: 10px; color: var(--yellow-dark); font-weight: 600; }
+
+    @media (max-width: 900px) {
+      .ex-card-grid { grid-template-columns: 1fr; }
+      .ex-coming-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .ex-recommended-card { flex-direction: column; align-items: flex-start; }
+    }
+
+    /* ── EXCHANGE ── */
+    .exchange-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .exchange-header h3 { font-size: 20px; font-weight: 700; color: var(--navy); }
+    .exchange-header p { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .exchange-tag { background: var(--yellow-bg); border: 1px solid var(--yellow-dark); border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 600; color: var(--yellow-dark); }
+
+    /* All panes visible by default; filterMarketplaceDept()/filterMarketplaceSearch() hide/show via .mkt-hidden */
+    .exchange-pane { display: block; margin-bottom: 32px; }
+    .exchange-pane.mkt-hidden { display: none; }
+    .exchange-card.mkt-hidden { display: none; }
+    .ex-lanes-wrap { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+    /* 2026-09-04 — sidebar CSS copied verbatim from marketplace/index.html
+       so this page can carry the same persistent sidebar — see the dev
+       note above .mkt-sidebar in the HTML. Keep in sync with sarah/ and
+       marcus/, and with marketplace/index.html itself if this ever changes
+       there. */
+    .mkt-body-layout { display: flex; gap: 24px; align-items: flex-start; margin-top: 24px; }
+    .mkt-sidebar-all { font-weight: 700; }
+    .mkt-sidebar-divider { height: 1px; background: var(--border); margin: 6px 4px 10px; }
+    .mkt-sidebar { display: flex; flex-direction: column; justify-content: flex-start; width: 200px; flex-shrink: 0; position: sticky; top: 90px; background: var(--white); border: 1.5px solid var(--border); border-radius: 14px; padding: 10px; }
+    .mkt-sidebar-title { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 8px 12px 10px; }
+    .mkt-sidebar-item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: none; border: none; padding: 9px 10px; border-radius: 8px; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; color: var(--text); transition: background 0.15s; }
+    .mkt-sidebar-item:hover { background: var(--gray); }
+    .mkt-sidebar-item.active { background: rgba(244,211,94,0.16); color: var(--navy); font-weight: 700; }
+    .mkt-sidebar-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+    @media (max-width: 900px) { .mkt-sidebar { display: none; } }
+    body.mkt-treatment-frame .mkt-body-layout { border: 1.5px solid var(--border); border-radius: 18px; padding: 24px; background: var(--white); }
+    body.mkt-treatment-frame .mkt-sidebar { border: none; border-radius: 0; padding: 0 20px 0 0; background: none; }
+    body.mkt-treatment-frame .ex-lanes-wrap { border-left: 1.5px solid var(--border); padding-left: 24px; }
+    #pane-pc { order: 1; }
+    #pane-life { order: 2; }
+    #pane-estate { order: 3; }
+    #pane-tax { order: 4; }
+    #pane-mortgage { order: 5; }
+    #pane-debt { order: 6; }
+    #pane-advisor { order: 7; }
+    #coming-soon-section { order: 8; }
+
+    /* ── Marketplace hero band — deliberately distinct from the rest of the
+         dashboard (dark navy/gold, same device as .credit-projection's glow)
+         so entering the Marketplace reads as its own zone, the way Marriott
+         Bonvoy's redemption pages shift to a dark header within the same
+         site. Two DOM pieces (.mkt-hero + .mkt-dept-tiles right below it,
+         matching top/bottom border-radius) read as one continuous band —
+         split apart only because .mkt-hero needs overflow:hidden for the
+         glow decoration, which would break position:sticky on the tile bar
+         if they were the same element. ── */
+    .mkt-hero {
+      background: linear-gradient(135deg, #0a2540 0%, var(--navy) 55%, var(--navy-mid) 100%);
+      border-radius: 20px 20px 0 0; padding: 32px 36px 24px;
+      position: relative; overflow: hidden;
+      box-shadow: 0 6px 24px rgba(13,59,102,0.18);
+    }
+    .mkt-hero::before {
+      content: ''; position: absolute; top: -60px; right: -60px;
+      width: 320px; height: 320px;
+      background: radial-gradient(circle, rgba(244,211,94,0.14), transparent 65%);
+      pointer-events: none;
+    }
+    .mkt-hero > * { position: relative; z-index: 1; }
+    .mkt-search-row { margin-bottom: 0; }
+    .mkt-search-box {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--white); border: 1.5px solid var(--border); border-radius: 14px;
+      padding: 12px 16px;
+    }
+    .mkt-search-box:focus-within { border-color: var(--yellow); }
+    .mkt-search-icon { font-size: 15px; opacity: 0.6; flex-shrink: 0; }
+    .mkt-search-input {
+      flex: 1; border: none; outline: none; font-family: 'Outfit', sans-serif;
+      font-size: 14px; color: var(--text); background: none;
+    }
+    .mkt-search-input::placeholder { color: var(--muted); }
+    .mkt-search-clear {
+      border: none; background: var(--gray); color: var(--muted); width: 22px; height: 22px;
+      border-radius: 50%; cursor: pointer; font-size: 11px; flex-shrink: 0; line-height: 1;
+    }
+    .mkt-search-clear:hover { background: var(--border); color: var(--text); }
+
+    /* Jump-to-service tile bar — sticky so it stays reachable while
+       scrolling through department sections below, matching Bonvoy's
+       persistent "Use Points and Awards" category bar. */
+    .mkt-dept-tiles {
+      display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px;
+      background: var(--navy-mid); border-radius: 0 0 20px 20px; overflow: hidden;
+      position: sticky; top: var(--nav-h); z-index: 30;
+      margin-bottom: 48px; box-shadow: 0 6px 24px rgba(13,59,102,0.18);
+    }
+    .mkt-dept-tile {
+      background: var(--navy); border: none; cursor: pointer;
+      padding: 14px 6px 12px;
+      display: flex; flex-direction: column; align-items: center; gap: 7px;
+      font-family: 'Outfit', sans-serif; transition: background 0.15s;
+    }
+    .mkt-dept-tile:hover { background: var(--navy-mid); }
+    /* 2026-09-03, per Alex: the old solid-yellow-fill active state read as
+       too loud — "is there a more discreet way to do it maybe just bolding
+       yellow around that box." Swapped the fill for a slim inset yellow
+       ring, keeping the tile's normal navy background instead of inverting
+       it, so the active tile still reads as "part of the bar" rather than
+       a jarring block of color. */
+    .mkt-dept-tile.active { background: var(--navy-mid); box-shadow: inset 0 0 0 2px var(--yellow); }
+    .mkt-dept-tile.active .mkt-dept-tile-label { color: var(--yellow); }
+    .mkt-dept-tile.active .mkt-dept-tile-bubble { background: rgba(244,211,94,0.22); border-color: var(--yellow); }
+    .mkt-dept-tile-bubble {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: rgba(244,211,94,0.15); border: 1.5px solid rgba(244,211,94,0.3);
+      display: flex; align-items: center; justify-content: center; font-size: 17px;
+      transition: transform 0.15s;
+    }
+    .mkt-dept-tile:hover .mkt-dept-tile-bubble { transform: scale(1.08); }
+    .mkt-dept-tile-label { font-size: 10.5px; font-weight: 600; color: rgba(255,255,255,0.85); text-align: center; line-height: 1.2; }
+    @media (max-width: 700px) {
+      .mkt-dept-tiles { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    /* cards */
+    .exchange-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 28px; }
+    .exchange-card { background: var(--white); border: 1.5px solid var(--border); border-radius: 14px; padding: 22px 20px; cursor: pointer; transition: all 0.15s; position: relative; overflow: hidden; }
+    .exchange-card:hover { border-color: var(--navy); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(13,59,102,0.09); }
+    .exchange-card.featured { border-color: var(--yellow); padding-top: 38px; }
+    .exchange-card.featured::before { content: 'Recommended'; position: absolute; top: 12px; right: 12px; background: var(--yellow); color: var(--navy); font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+    .partner-badge { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+    .exchange-card h4 { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+    .exchange-card p { font-size: 12px; color: var(--muted); line-height: 1.65; margin-bottom: 14px; }
+    .exchange-card-footer { display: flex; align-items: center; justify-content: space-between; }
+    .credit-pill { display: inline-flex; align-items: center; gap: 5px; background: var(--navy); color: var(--yellow); font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 6px; }
+    .credit-pill.earn { background: #ecfdf5; color: #15803d; }
+    .exchange-cta { font-size: 13px; font-weight: 600; color: var(--navy); display: flex; align-items: center; gap: 4px; text-decoration: none; }
+    .exchange-cta:hover { color: var(--yellow-dark); }
+
+    /* 2026-09-03 — real partners within a department, as a list rather than
+       a card in the exchange-grid: per Alex, "we want this to be a list..
+       click mortgage and see everything about movement and kevin and at
+       least a snapshot" — a row is meant to be a snapshot, and clicking one
+       opens a dedicated page for that partner (showPartnerDetail below),
+       not an inline expand. Built to hold more than one row once a second
+       partner in a department is real, not just for Kevin. */
+    .partner-list-title { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+    .partner-list { background: var(--white); border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 28px; }
+    .partner-list-row { display: flex; align-items: center; gap: 14px; padding: 16px 18px; cursor: pointer; transition: background 0.15s; }
+    .partner-list-row + .partner-list-row { border-top: 1px solid var(--border); }
+    .partner-list-row:hover { background: #faf9f7; }
+    .partner-list-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .partner-list-info { flex: 1; min-width: 0; }
+    .partner-list-name { font-size: 14px; font-weight: 700; color: var(--navy); }
+    .partner-list-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+    .partner-list-chevron { font-size: 16px; color: var(--muted); flex-shrink: 0; }
+
+    /* Partner detail — its own view (toggled like #exchangeView/#dashboardView),
+       not an in-page panel, per Alex: "when they click on it it goes into a
+       different page just for that." */
+    .partner-detail-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    .partner-back-btn { padding: 8px 14px; background: var(--white); color: var(--navy); border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Outfit', sans-serif; display: flex; align-items: center; gap: 6px; transition: border-color 0.15s; }
+    .partner-back-btn:hover { border-color: var(--navy); }
+
+    /* 2026-09-04 — the department "lead" element: replaces a separate
+       "Apply Credits" featured card competing above the partner list. Per
+       Alex: "this is where we want to introduce movement mortgage... this
+       should be Learn more about our Mortgage partner and how you can use
+       your credits to get closer to home ownership." Uses the same navy
+       gradient as .mkt-hero (Alex: "i like the top blue part") so the
+       partner introduction reads as a continuation of the marketplace's own
+       zone rather than a plain white dashboard card. */
+    .partner-spotlight {
+      background: linear-gradient(135deg, #0a2540 0%, var(--navy) 55%, var(--navy-mid) 100%);
+      border-radius: 16px; padding: 26px 28px; margin-bottom: 14px; cursor: pointer;
+      display: flex; align-items: center; gap: 20px; transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 6px 20px rgba(13,59,102,0.18);
+    }
+    .partner-spotlight:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(13,59,102,0.28); }
+    .partner-spotlight-photo { width: 68px; height: 68px; border-radius: 50%; object-fit: cover; border: 3px solid rgba(244,211,94,0.5); flex-shrink: 0; }
+    .partner-spotlight-firm { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--yellow); margin-bottom: 8px; }
+    /* 2026-09-04 — Movement Mortgage's real logo (pulled from movement.com's
+       own site, verified reachable — see the dev note above the img tag
+       below). It's a solid-white-background PNG, not transparent, so it
+       needs its own white chip to sit cleanly on this card's navy gradient
+       rather than showing a raw white box. */
+    .partner-logo-badge { display: inline-flex; align-items: center; background: #fff; border-radius: 6px; padding: 4px 8px; }
+    .partner-logo-badge img { display: block; height: 16px; width: auto; }
+    .partner-spotlight-headline { font-size: 17px; font-weight: 700; color: #fff; line-height: 1.4; margin-bottom: 8px; }
+    .partner-spotlight-body { font-size: 13px; color: rgba(255,255,255,0.65); line-height: 1.6; margin-bottom: 14px; }
+    .partner-spotlight-cta { font-size: 13px; font-weight: 700; color: var(--navy); background: var(--yellow); display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 8px; }
+    @media (max-width: 560px) { .partner-spotlight { flex-direction: column; align-items: flex-start; } }
+
+    /* P&C intro hero */
+    .pc-intro { background: var(--navy); border-radius: 16px; padding: 28px 32px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .pc-intro-left h4 { font-size: 18px; font-weight: 700; color: var(--white); margin-bottom: 6px; }
+    .pc-intro-left p { font-size: 13px; color: rgba(255,255,255,0.65); line-height: 1.6; max-width: 480px; }
+    .btn-get-quotes { padding: 12px 26px; background: var(--yellow); color: var(--navy); border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Outfit', sans-serif; white-space: nowrap; transition: background 0.15s; flex-shrink: 0; }
+    .btn-get-quotes:hover { background: var(--yellow-dark); }
+    .pc-partner-row { display: flex; gap: 12px; margin-bottom: 24px; }
+    .pc-partner-chip { display: flex; align-items: center; gap: 8px; background: var(--white); border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 16px; font-size: 12px; font-weight: 600; color: var(--navy); }
+    .pc-partner-chip .chip-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; }
+
+    /* quote flow panel */
+    .quote-flow-panel { background: var(--white); border: 1.5px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 24px; display: none; }
+    .quote-flow-panel.open { display: block; }
+    .qf-header { background: var(--navy); padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .qf-header-title { font-size: 15px; font-weight: 700; color: var(--white); }
+    .qf-header-sub { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+    .qf-close { background: none; border: none; color: rgba(255,255,255,0.6); font-size: 20px; cursor: pointer; line-height: 1; padding: 0; }
+    .qf-close:hover { color: var(--white); }
+    .qf-body { padding: 28px 24px; }
+
+    /* quote step 1 — collect */
+    .qf-step { display: none; }
+    .qf-step.active { display: block; }
+    .qf-fields { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+    .qf-field label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 5px; }
+    .qf-field input, .qf-field select { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; font-family: 'Outfit', sans-serif; color: var(--navy); outline: none; box-sizing: border-box; }
+    .qf-field input:focus, .qf-field select:focus { border-color: var(--navy); }
+    .qf-note { font-size: 12px; color: var(--muted); margin-bottom: 20px; line-height: 1.55; }
+    .btn-run-quotes { padding: 12px 28px; background: var(--navy); color: var(--white); border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Outfit', sans-serif; transition: background 0.15s; }
+    .btn-run-quotes:hover { background: var(--navy-mid); }
+
+    /* quote step 2 — loading */
+    .qf-loading-wrap { text-align: center; padding: 40px 20px; }
+    .qf-spinner { width: 44px; height: 44px; border: 4px solid var(--border); border-top-color: var(--navy); border-radius: 50%; animation: spin 0.75s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .qf-loading-title { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+    .qf-loading-sub { font-size: 12px; color: var(--muted); }
+
+    /* quote step 3 — results */
+    .qf-results-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; }
+    .qf-results-title { font-size: 15px; font-weight: 700; color: var(--navy); }
+    .qf-results-note { font-size: 12px; color: var(--muted); }
+    .quote-table { width: 100%; border-collapse: collapse; }
+    .quote-table th { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); padding: 0 12px 10px; text-align: left; border-bottom: 1.5px solid var(--border); }
+    .quote-table th:last-child { text-align: right; }
+    .quote-table td { padding: 14px 12px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--navy); vertical-align: middle; }
+    .quote-table tr:last-child td { border-bottom: none; }
+    .quote-table tr.current-carrier td { background: #fff7ed; }
+    .qt-carrier { font-weight: 700; }
+    .qt-rate { font-size: 15px; font-weight: 700; }
+    .qt-rate.best { color: #15803d; }
+    .qt-savings { font-size: 12px; color: #15803d; font-weight: 600; }
+    .qt-current-tag { font-size: 10px; background: #fed7aa; color: #c2410c; padding: 2px 7px; border-radius: 4px; font-weight: 700; display: inline-block; margin-top: 2px; }
+    .qt-boost { font-size: 11px; color: var(--yellow-dark); font-weight: 600; }
+    .btn-select-quote { padding: 8px 16px; background: var(--navy); color: var(--white); border: none; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Outfit', sans-serif; }
+    .btn-select-quote:hover { background: var(--navy-mid); }
+    .qf-disclaimer { font-size: 11px; color: var(--muted); margin-top: 16px; line-height: 1.5; }
+    .qf-back-btn { background: none; border: none; font-size: 13px; color: var(--muted); cursor: pointer; font-family: 'Outfit', sans-serif; padding: 0; }
+    .qf-back-btn:hover { color: var(--navy); }
+
+    /* step 4 — coverage */
+    .qf-policy-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .qf-policy-carrier { font-size: 18px; font-weight: 700; color: var(--navy); }
+    .qf-policy-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .qf-policy-rate-badge { background: var(--navy); color: var(--yellow); font-size: 16px; font-weight: 700; padding: 8px 18px; border-radius: 10px; }
+    .qf-coverage-grid { border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
+    .qf-cov-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 16px; border-bottom: 1px solid var(--border); }
+    .qf-cov-row:last-child { border-bottom: none; }
+    .qf-cov-label { font-size: 13px; color: var(--muted); }
+    .qf-cov-val { font-size: 13px; font-weight: 600; color: var(--navy); }
+    .qf-cov-note { font-size: 11px; color: var(--muted); }
+    .qf-section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); margin-bottom: 10px; }
+
+    /* step 5 — payment */
+    .qf-payment-wrap { display: grid; grid-template-columns: 1fr 280px; gap: 24px; align-items: start; }
+    .qf-credit-apply-box { background: var(--yellow-bg); border: 1px solid var(--yellow-dark); border-radius: 10px; padding: 14px 16px; margin-bottom: 4px; }
+    .qf-credit-avail { font-size: 12px; color: var(--navy); margin-bottom: 10px; }
+    .qf-credit-options { display: flex; flex-direction: column; gap: 8px; }
+    .qf-credit-opt { font-size: 13px; color: var(--navy); cursor: pointer; display: flex; align-items: center; gap: 8px; }
+    .qf-credit-opt input { accent-color: var(--navy); }
+    .qf-payment-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .qf-order-summary { background: var(--white); border: 1.5px solid var(--border); border-radius: 14px; padding: 20px; }
+    .qf-summary-title { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 14px; }
+    .qf-summary-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--navy); margin-bottom: 8px; }
+    .qf-summary-row.green { color: #15803d; }
+    .qf-summary-row.total { font-weight: 700; font-size: 15px; margin-top: 4px; }
+    .qf-summary-divider { border: none; border-top: 1.5px solid var(--border); margin: 10px 0; }
+    .qf-summary-note { font-size: 11px; color: var(--muted); text-align: center; margin-top: 8px; }
+
+    /* step 6 — confirmation */
+    .qf-confirm-wrap { text-align: center; padding: 20px 40px 32px; }
+    .qf-confirm-icon { width: 56px; height: 56px; background: #ecfdf5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 24px; color: #15803d; font-weight: 700; }
+    .qf-confirm-title { font-size: 22px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+    .qf-confirm-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.6; }
+    .qf-confirm-details { background: var(--bg); border-radius: 10px; padding: 4px 0; margin-bottom: 20px; text-align: left; }
+    .qf-credits-earned-row { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+
+    /* nudge "up next" transition bar */
+    .nudge-next-up { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .nudge-next-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 4px; }
+    .nudge-next-text { font-size: 13px; font-weight: 600; color: var(--navy); margin-bottom: 8px; }
+    .nudge-next-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .nudge-next-bar-fill { height: 100%; width: 0%; background: var(--yellow); border-radius: 2px; transition: width 3s linear; }
+
+    /* ── VESTING SECTION ── */
+    .vesting-section { margin-bottom: 40px; }
+    .vesting-header { margin-bottom: 20px; }
+    .vesting-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .vesting-card { background: var(--white); border: 1.5px solid var(--border); border-radius: 14px; padding: 22px 20px; }
+    .vesting-card-icon { font-size: 20px; margin-bottom: 8px; }
+    .vesting-card-title { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 14px; }
+    .vesting-table { display: flex; flex-direction: column; gap: 0; }
+    .vesting-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--navy); }
+    .vesting-row:last-child { border-bottom: none; }
+    .vesting-pts { font-weight: 700; color: #15803d; white-space: nowrap; margin-left: 8px; }
+    .vesting-pts.spend { color: var(--navy); }
+    .vesting-row.vesting-row-clickable { cursor: pointer; margin: 0 -10px; padding: 9px 10px; border-radius: 6px; transition: background 0.15s; }
+    .vesting-row.vesting-row-clickable:hover { background: var(--yellow-bg); }
+    .vesting-body p { font-size: 12px; color: var(--muted); line-height: 1.65; margin-bottom: 12px; }
+    .vesting-body p strong { color: var(--navy); }
+    .vesting-detail-link { display: block; text-align: right; margin-top: 14px; font-size: 12px; font-weight: 600; color: var(--navy); text-decoration: none; }
+    .vesting-detail-link:hover { text-decoration: underline; }
+
+    /* ── NUDGE CARD ── */
+    .nudge-card { background: var(--white); border: 2px solid var(--yellow); border-radius: 16px; padding: 24px; }
+    .nudge-eyebrow { display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--yellow-dark); margin-bottom: 12px; }
+    .nudge-title { font-size: 17px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+    .nudge-body { font-size: 13px; color: var(--muted); line-height: 1.65; margin-bottom: 20px; }
+    .nudge-cta-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .btn-nudge-yes { padding: 10px 20px; background: var(--navy); color: var(--white); border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Outfit', sans-serif; transition: background 0.15s; }
+    .btn-nudge-yes:hover { background: var(--navy-mid); }
+    .btn-nudge-no { font-size: 12px; color: var(--muted); cursor: pointer; background: none; border: none; font-family: 'Outfit', sans-serif; }
+    .btn-nudge-no:hover { color: var(--text); }
+    .nudge-form-section { display: none; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px; }
+    .nudge-step-label { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+    .nudge-field-label { font-size: 11px; font-weight: 600; color: var(--navy); margin-bottom: 5px; display: block; }
+    .nudge-input { width: 100%; border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 13px; font-family: 'Outfit', sans-serif; color: var(--text); outline: none; transition: border-color 0.15s; box-sizing: border-box; }
+    .nudge-input:focus { border-color: var(--navy); }
+    .vin-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .vin-row .nudge-input { flex: 1; }
+    .btn-vin { padding: 10px 14px; background: var(--gray); border: 1.5px solid var(--border); border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--navy); cursor: pointer; font-family: 'Outfit', sans-serif; white-space: nowrap; transition: all 0.15s; }
+    .btn-vin:hover { border-color: var(--navy); }
+    .vin-result { font-size: 12px; color: var(--green); font-weight: 600; margin-bottom: 10px; display: none; }
+    .nudge-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .nudge-divider { height: 1px; background: var(--border); margin: 14px 0; }
+    .nudge-upload { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); cursor: pointer; padding: 10px 12px; border: 1.5px dashed var(--border); border-radius: 8px; margin-bottom: 12px; transition: border-color 0.15s; }
+    .nudge-upload:hover { border-color: var(--navy); color: var(--navy); }
+    .nudge-earn-note { font-size: 11px; font-weight: 600; color: var(--yellow-dark); background: var(--yellow-bg); padding: 8px 12px; border-radius: 6px; margin-bottom: 14px; }
+    .btn-nudge-submit { width: 100%; padding: 12px; background: var(--navy); color: var(--white); border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Outfit', sans-serif; transition: background 0.15s; }
+    .btn-nudge-submit:hover { background: var(--navy-mid); }
+    .nudge-success-section { display: none; text-align: center; padding: 12px 0; }
+    .nudge-success-icon { font-size: 36px; margin-bottom: 10px; }
+    .nudge-success-title { font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+    .nudge-success-body { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+    .nudge-credits-badge { display: inline-block; background: var(--yellow-bg); border: 1px solid var(--yellow-dark); border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; color: var(--yellow-dark); }
+
+    /* ── Zebra quote options (in-card mini quote flow) ── */
+    .zq-option { display: flex; align-items: center; justify-content: space-between; text-align: left; border: 1.5px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+    .zq-option:hover { border-color: var(--navy); background: #f8f9fb; }
+    .zq-carrier { font-size: 13px; font-weight: 700; color: var(--navy); }
+    .zq-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .zq-rate { font-size: 16px; font-weight: 700; color: var(--navy); }
+
+    /* ── Post-nudge checklist (replaces the "What's Next" pitch once a
+       category is done, instead of auto-chaining straight into the next
+       one — Alex: it felt like jumping from one pitch to another) ── */
+    .checklist-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .checklist-row:last-of-type { border-bottom: none; }
+    .checklist-check { width: 20px; height: 20px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-top: 1px; }
+    .checklist-check.done { background: #16a34a; color: #fff; }
+    .checklist-check.pending { border: 1.5px solid var(--border); color: transparent; }
+    .checklist-check.active { background: var(--yellow); color: var(--navy); font-size: 11px; }
+    .checklist-label { font-size: 13px; font-weight: 600; color: var(--navy); }
+    .checklist-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .nudge-mini-checklist { margin-bottom: 16px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+    .nudge-mini-checklist .checklist-row { padding: 7px 0; }
+    .nudge-skip-persistent { display: none; text-align: right; font-size: 11px; color: var(--muted); cursor: pointer; margin-bottom: 10px; text-decoration: underline; }
+    .nudge-skip-persistent:hover { color: var(--navy); }
+    #nudgeCard.tut-target .nudge-skip-persistent { display: block; }
+
+    /* ── Financial 15 ── */
+    .fin15-card { background: var(--yellow-bg); border: 1px solid var(--yellow-dark); border-radius: 12px; padding: 14px; margin-top: 16px; }
+    .fin15-title { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+    .fin15-body { font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 12px; }
+    .fin15-days { display: flex; gap: 6px; margin-bottom: 12px; }
+    .fin15-day-btn { flex: 1; padding: 7px 0; border-radius: 8px; border: 1.5px solid var(--yellow-dark); background: transparent; color: var(--navy); font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Outfit', sans-serif; transition: all 0.15s; }
+    .fin15-day-btn.selected { background: var(--navy); border-color: var(--navy); color: var(--white); }
+    .fin15-cal-primary { display: block; width: 100%; padding: 12px; background: var(--navy); color: var(--white); border: none; border-radius: 8px; font-size: 14px; font-weight: 600; font-family: 'Outfit', sans-serif; text-align: center; text-decoration: none; box-sizing: border-box; transition: background 0.15s; }
+    .fin15-cal-primary:hover { background: var(--navy-mid); }
+    .fin15-alt-actions { display: flex; justify-content: space-between; margin-top: 9px; }
+    .fin15-alt-link { font-size: 11px; color: var(--yellow-dark); text-decoration: underline; cursor: pointer; background: none; border: none; padding: 0; font-family: 'Outfit', sans-serif; }
+
+    /* ── ACTIVITY FEED ── */
+    .activity-section { margin-bottom: 40px; }
+    .activity-title { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 14px; }
+    .activity-feed { background: var(--white); border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .activity-row { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+    .activity-row:last-child { border-bottom: none; }
+    .activity-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .activity-icon.earn { background: #ecfdf5; }
+    .activity-icon.redeem { background: #fef9ec; }
+    .activity-text { flex: 1; }
+    .activity-text strong { font-size: 13px; font-weight: 600; color: var(--navy); display: block; }
+    .activity-text span { font-size: 11px; color: var(--muted); }
+    .activity-pts { font-size: 14px; font-weight: 700; }
+    .activity-pts.earn { color: #16a34a; }
+    .activity-pts.spend { color: var(--yellow-dark); }
+
+    /* ── DISCLOSURE MODAL ── */
+    .disclosure-overlay { display: none; position: fixed; inset: 0; background: rgba(8,20,48,0.92); z-index: 3000; align-items: center; justify-content: center; padding: 20px; }
+    .disclosure-overlay.show { display: flex; }
+    .disclosure-box { background: var(--white); border-radius: 12px; max-width: 560px; width: 100%; height: min(720px, 90vh); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .disclosure-header { padding: 28px 32px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; position: relative; }
+    .disclosure-close { position: absolute; top: 20px; right: 24px; width: 28px; height: 28px; border-radius: 50%; border: none; background: var(--gray); color: var(--muted); font-size: 13px; cursor: pointer; }
+    .disclosure-close:hover { background: var(--border); color: var(--text); }
+    .disclosures-footer-link { text-align: center; padding: 24px 0 40px; font-size: 11px; color: var(--muted); }
+    .disclosures-footer-link a { color: var(--muted); text-decoration: underline; cursor: pointer; }
+    .disclosures-footer-link a:hover { color: var(--navy); }
+    .disclosure-header h2 { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+    .disclosure-header p { font-size: 13px; color: var(--muted); }
+    .disclosure-body { padding: 24px 32px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; flex: 1; font-size: 11px; color: var(--text); line-height: 1.55; }
+    .disclosure-body h4 { font-size: 10.5px; font-weight: 700; color: var(--navy); text-transform: uppercase; letter-spacing: 0.08em; margin: 16px 0 5px; }
+    .disclosure-body h4:first-child { margin-top: 0; }
+    .disclosure-body p { margin-bottom: 10px; }
+    .disclosure-footer { padding: 20px 32px; border-top: 1px solid var(--border); flex-shrink: 0; }
+    .disclosure-check-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px; cursor: pointer; }
+    .disclosure-scroll-hint { font-size: 11.5px; font-weight: 600; color: var(--yellow-dark); text-align: center; margin-bottom: 12px; }
+    .disclosure-scroll-tap { display: inline-block; margin-top: 8px; padding: 8px 16px; background: var(--yellow-bg, #fefae8); border: 1.5px solid var(--yellow-dark); border-radius: 8px; font-size: 12px; font-weight: 700; color: var(--yellow-dark); cursor: pointer; font-family: inherit; }
+    .disclosure-scroll-tap:hover, .disclosure-scroll-tap:active { background: var(--yellow-dark); color: #fff; }
+    .disclosure-check-row input { margin-top: 2px; accent-color: var(--navy); width: 16px; height: 16px; flex-shrink: 0; }
+    .disclosure-check-row span { font-size: 11px; color: var(--text); line-height: 1.5; }
+    .btn-disclose-agree { width: 100%; padding: 13px; background: var(--navy); color: var(--white); border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Outfit', sans-serif; margin-bottom: 10px; transition: background 0.15s; }
+    .btn-disclose-agree:disabled { background: #ccc; cursor: default; }
+    .btn-disclose-agree:not(:disabled):hover { background: var(--navy-mid); }
+    .btn-disclose-decline { display: block; width: 100%; text-align: center; font-size: 12px; color: var(--muted); cursor: pointer; background: none; border: none; font-family: 'Outfit', sans-serif; }
+    .btn-disclose-decline:hover { color: var(--text); }
+
+    /* ── TRAIL ENDS ── */
+    .trail-ends-overlay { display: none; position: fixed; inset: 0; background: var(--navy); z-index: 3000; align-items: center; justify-content: center; padding: 20px; }
+    .trail-ends-overlay.show { display: flex; }
+    .trail-ends-box { max-width: 460px; width: 100%; text-align: center; }
+    .trail-ends-icon { font-size: 48px; margin-bottom: 20px; }
+    .trail-ends-box h2 { font-size: 22px; font-weight: 700; color: var(--white); margin-bottom: 12px; }
+    .trail-ends-box p { font-size: 14px; color: rgba(255,255,255,0.55); line-height: 1.75; margin-bottom: 28px; }
+    .btn-trail-back { padding: 13px 32px; background: var(--yellow); color: var(--navy); border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Outfit', sans-serif; }
+
+    /* ── NUDGE UPLOAD ── */
+    .nudge-upload-big { border: 2px dashed var(--yellow); border-radius: 12px; padding: 18px; text-align: center; cursor: pointer; margin-bottom: 12px; transition: background 0.15s; }
+    .nudge-upload-big:hover { background: var(--yellow-bg); }
+    @keyframes scanBar { from { width: 0; } to { width: 100%; } }
+
+    /* ── DECISION BANNER ── */
+    .decision-banner { background: var(--navy); border-radius: 12px; padding: 13px 22px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .decision-banner-left { display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 700; color: var(--yellow); }
+    .decision-banner-right { font-size: 12px; color: rgba(255,255,255,0.4); font-style: italic; }
+
+    /* ── NUDGE — 2026-09-03, two rounds. Round 1: moved out of the separate
+         white sidebar into the goal card itself (it "felt like the
+         tutorial" as its own hand-off box). Round 2, right after seeing
+         that: pulled back OUT into its own "To Do" section below the goal
+         card (see .next-steps-section) — Alex wanted a genuine break/
+         separation, not everything fused into one card. Kept the same
+         dark/navy blended treatment from round 1 either way. See the dev
+         note above openNudgeTodo(). ── */
+    .next-steps-section { margin-bottom: 28px; }
+    /* Explicit dark background now (not the translucent-white-on-dark-parent
+       trick from round 1) — .nudge-sidebar is a top-level section now, on
+       the page's light background, not nested inside .credits-hero anymore. */
+    .nudge-sidebar {
+      background: var(--navy); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px; padding: 20px 22px;
+      display: flex; flex-direction: column;
+    }
+    .nudge-sidebar .nudge-eyebrow { font-size: 10px; color: var(--yellow); }
+    .nudge-sidebar .nudge-title { font-size: 16px; margin-bottom: 8px; color: var(--white); }
+    .nudge-sidebar .nudge-body { font-size: 13px; margin-bottom: 16px; color: rgba(255,255,255,0.65); }
+    .nudge-sidebar .nudge-step-label { color: rgba(255,255,255,0.4); }
+    .nudge-sidebar .nudge-field-label { color: rgba(255,255,255,0.75); }
+    .nudge-sidebar .checklist-label { color: var(--white); }
+    .nudge-sidebar .checklist-sub { color: rgba(255,255,255,0.5); }
+    .nudge-sidebar .nudge-mini-checklist { border-bottom-color: rgba(255,255,255,0.12); }
+    .nudge-sidebar .nudge-divider { background: rgba(255,255,255,0.12); }
+    .nudge-sidebar .btn-nudge-yes, .nudge-sidebar .btn-nudge-submit { font-size: 13px; padding: 11px 14px; background: var(--yellow); color: var(--navy); }
+    .nudge-sidebar .btn-nudge-no { color: rgba(255,255,255,0.5); }
+    .nudge-sidebar .nudge-skip-persistent { color: rgba(255,255,255,0.4); }
+    .nudge-sidebar .nudge-skip-persistent:hover { color: var(--white); }
+    .nudge-sidebar .qf-credit-opt { color: rgba(255,255,255,0.8); }
+    .nudge-sidebar .nudge-next-up { border-top-color: rgba(255,255,255,0.15); }
+    .nudge-sidebar .nudge-next-label { color: rgba(255,255,255,0.4); }
+    .nudge-sidebar .nudge-next-text { color: var(--white); }
+    .nudge-sidebar .nudge-upload { color: rgba(255,255,255,0.5); border-color: rgba(255,255,255,0.2); }
+    .nudge-sidebar .nudge-success-title { color: var(--white); }
+    .nudge-sidebar .nudge-success-body { color: rgba(255,255,255,0.65); }
+
+    /* To-do entry point — the only thing shown by default; clicking it
+       reveals the real pitch (#nudgePrompt) instead of showing it outright. */
+    .nudge-todo {
+      display: flex; align-items: center; gap: 14px; cursor: pointer;
+      padding: 14px 16px; border-radius: 12px;
+      background: rgba(244,211,94,0.08); border: 1px solid rgba(244,211,94,0.25);
+      transition: background 0.15s;
+    }
+    .nudge-todo:hover { background: rgba(244,211,94,0.14); }
+    .nudge-todo-icon { font-size: 22px; flex-shrink: 0; }
+    .nudge-todo-text { flex: 1; min-width: 0; }
+    .nudge-todo-label { font-size: 14px; font-weight: 700; color: var(--white); }
+    .nudge-todo-sub { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+    .nudge-todo-arrow { font-size: 18px; color: var(--yellow); flex-shrink: 0; }
+
+    /* ── STATUS STRIP ── */
+    .status-strip { background: var(--navy); border-radius: 14px; padding: 16px 24px; display: flex; align-items: center; gap: 20px; margin-bottom: 28px; }
+    .strip-left { flex-shrink: 0; }
+    .strip-tier-badge { display: inline-flex; align-items: center; gap: 5px; background: rgba(244,211,94,0.12); border: 1px solid rgba(244,211,94,0.25); border-radius: 20px; padding: 3px 10px; font-size: 9px; font-weight: 600; color: var(--yellow); margin-bottom: 4px; }
+    .strip-tier-name { font-size: 16px; font-weight: 700; color: var(--white); }
+    .strip-progress { flex: 1; min-width: 100px; }
+    .strip-bar-wrap { height: 7px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-bottom: 5px; }
+    .strip-bar-fill { height: 100%; width: 70%; background: var(--yellow); border-radius: 4px; }
+    .strip-bar-labels { display: flex; justify-content: space-between; font-size: 10px; color: rgba(255,255,255,0.35); }
+    .strip-perks { display: flex; gap: 14px; flex-shrink: 0; }
+    .strip-perk { display: flex; align-items: center; gap: 5px; font-size: 11px; color: rgba(255,255,255,0.5); white-space: nowrap; }
+    .strip-perk-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--yellow); flex-shrink: 0; }
+
+    @media (max-width: 768px) {
+      .exchange-grid { grid-template-columns: 1fr; }
+      .strip-perks { display: none; }
+      .page { padding: 24px 16px 80px; }
+      .quick-actions { gap: 8px; }
+      .decision-banner-right { display: none; }
+      .qf-fields { grid-template-columns: 1fr 1fr; }
+      .pc-intro { flex-direction: column; }
+    }
+  </style>
+</head>
+<body class="mkt-sidebar-only mkt-treatment-frame">
+
+<!-- HEADER -->
+<nav>
+  <a href="../../" class="nav-logo" id="navLogo">
+    <svg width="32" height="32" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M18 1.5L3.5 7.5V17c0 9.2 6.5 16.2 14.5 17.5C26 33.2 32.5 26.2 32.5 17V7.5L18 1.5z" fill="#f5a623"/>
+      <circle cx="18" cy="12" r="2.8" fill="#0d1f33"/>
+      <path d="M18 14.8v7.5" stroke="#0d1f33" stroke-width="2" stroke-linecap="round"/>
+      <path d="M14.5 18.5C14.5 18.5 16 16.8 18 16.8s3.5 1.7 3.5 1.7" stroke="#0d1f33" stroke-width="1.7" stroke-linecap="round" fill="none"/>
+      <path d="M12 22C13.5 20.5 15.5 19.8 18 19.8s4.5 0.7 6 2.2" stroke="#0d1f33" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+    </svg>
+    <div class="nav-logo-name">Asset<em>Align</em></div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="../../" id="navDashboard">Dashboard</a></li>
+    <li><a href="../" id="navExchange" class="nav-marketplace">Marketplace</a></li>
+    <li><a href="#" onclick="event.preventDefault(); openCreditsDetail();">Credits</a></li>
+    <li><a href="../../vault/" id="navVault">Documents</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="points-pill" id="tutPointsPill" onclick="openCreditsDetail()" style="cursor:pointer;" title="See your credits">⬡ <span id="navCreditsNum">175</span> Credits<span class="points-badge">+10</span></div>
+    <div class="nav-user">
+      <div class="nav-avatar" id="navAvatarInitial">J</div>
+      <span class="nav-user-name" id="navUserName">Jordan</span>
+    </div>
+    <a href="#" class="nav-link-muted" onclick="event.preventDefault(); aaLogout();">Logout</a>
+  </div>
+</nav>
+
+
+<div class="page">
+
+  <!-- ── DECISION ENGINE BANNER ── -->
+  <div class="decision-banner">
+    <div class="decision-banner-left">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#F4D35E" stroke-width="1.5"/><path d="M7 4v3l2 1.5" stroke="#F4D35E" stroke-width="1.5" stroke-linecap="round"/></svg>
+      AssetAlign · Your Financial Decision Engine
+    </div>
+    <div class="decision-banner-right">Every credit you earn is a dollar saved on your next financial move</div>
+  </div>
+
+  <!-- ── ALIGN MARKETPLACE ── this page IS the marketplace now (2026-09-04
+       real-page split — see shared.js's header note); no more show/hide
+       toggle, so no display:none. -->
+  <div id="exchangeView">
+  <!-- 2026-09-04, per Alex: "when we click on Kevin in the mortgage
+       section.. the left side bar disappears.. i think we prob always
+       want to keep that so if they want to then click on insurance they
+       can." This page has no department panes of its own (it's one
+       partner's dedicated page, not the Marketplace hub), so the sidebar
+       here is a plain static nav, not the JS-driven filterMarketplaceDept()
+       version — each item just navigates to the real Marketplace page with
+       a ?dept= param, which marketplace/index.html's initMarketplacePage()
+       now reads (see its own dev note) to land pre-filtered instead of on
+       the default landing view. Mortgage is marked active since that's
+       genuinely where this page lives, even though clicking it just
+       re-navigates rather than filtering in place. Same sidebar copy goes
+       on sarah/ and marcus/ — keep all in sync. -->
+  <div class="mkt-body-layout">
+    <nav class="mkt-sidebar" id="mktSidebar">
+      <button class="mkt-sidebar-item mkt-sidebar-all" onclick="window.location.href='../'"><span class="mkt-sidebar-icon">🗂️</span>All</button>
+      <button class="mkt-sidebar-item mkt-sidebar-all" onclick="window.location.href='../?view=picks'"><span class="mkt-sidebar-icon">⭐</span>Overall Picks</button>
+      <div class="mkt-sidebar-divider"></div>
+      <div class="mkt-sidebar-title">Departments</div>
+      <button class="mkt-sidebar-item" onclick="window.location.href='../?dept=insurance'"><span class="mkt-sidebar-icon">🚗</span>Auto &amp; Home</button>
+      <button class="mkt-sidebar-item" onclick="window.location.href='../?dept=life'"><span class="mkt-sidebar-icon">🛟</span>Life Insurance</button>
+      <button class="mkt-sidebar-item" onclick="window.location.href='../?dept=estate'"><span class="mkt-sidebar-icon">📜</span>Estate Planning</button>
+      <button class="mkt-sidebar-item" onclick="window.location.href='../?dept=tax'"><span class="mkt-sidebar-icon">📊</span>Tax</button>
+      <button class="mkt-sidebar-item active" onclick="window.location.href='../?dept=mortgage'"><span class="mkt-sidebar-icon">🏡</span>Mortgage</button>
+      <button class="mkt-sidebar-item" onclick="window.location.href='../?dept=debt'"><span class="mkt-sidebar-icon">💳</span>Debt</button>
+      <button class="mkt-sidebar-item" onclick="window.location.href='../?dept=advisor'"><span class="mkt-sidebar-icon">🤝</span>Advisor</button>
+    </nav>
+
+  <div class="ex-lanes-wrap">
+    <!-- MOVEMENT MORTGAGE — KEVIN BYRNE
+         First real (not "coming soon") partner profile in the Exchange —
+         start of "the rest of the marketplace" per Alex (2026-09-02): "our
+         next big project is going to be the rest of the marketplace... for
+         this example we are going to want people to explore away." Built
+         from Kevin Byrne's own real submission to the assetalign-partner-
+         profile intake form (Netlify Forms, form id 6a1c448ae3b77a0008d6a72c,
+         submitted 2026-06-02) — not invented copy. Headshot is his actual
+         uploaded file, served directly from Netlify's own asset CDN
+         (verified reachable before using it). His bio text was truncated
+         mid-sentence in the original submission ("...today's mortgage
+         market. After a few decades in the business, I've lived thr") —
+         trimmed cleanly at the last complete sentence rather than
+         fabricating an ending. Two fields he actually left blank
+         (avg_loan_size, avg_turn_time, differentiator, designations) are
+         simply omitted here, not invented. His own free-text note ("I
+         personally am licensed in MA, RI, NH and FL, my team is licensed
+         in all 50 states") is preserved as the licensing line since it's
+         a real, important caveat he specifically flagged. -->
+    <div class="partner-detail-page" id="partnerDetail-mortgage-kevin">
+      <div class="partner-detail-header">
+        <button class="partner-back-btn" onclick="window.location.href='../'">← Back to Marketplace</button>
+      </div>
+
+      <!-- 2026-09-04, per Alex: "movement mortgage is the partner.. than a
+           hero blurb about movement mortgage.. and than maybe than after
+           something about kevin.. i think we want them to be the main
+           feature.. because they have a ton of agents that can help write
+           mortgages around the country.. we will just spotlight kevin."
+           Company facts below are real, pulled from movement.com/about,
+           verified live before using them — not invented. -->
+      <div class="partner-spotlight" style="cursor:default; margin-bottom:20px;">
+        <span class="partner-logo-badge" style="flex-shrink:0;"><img src="https://movement.com/images/source/movement-mortgage-logo.png" alt="Movement Mortgage" style="height:22px;"></span>
+        <div style="flex:1; min-width:0;">
+          <div class="partner-spotlight-firm">OUR MORTGAGE PARTNER</div>
+          <div class="partner-spotlight-headline">Movement Mortgage — a national lender, with local loan officers in every state.</div>
+          <div class="partner-spotlight-body">Founded in 2008 around a simple idea: mortgages that mean more. Today they're one of the largest mortgage lenders in the country, with loan officers in 775+ locations who can help you, wherever you are.</div>
+        </div>
+      </div>
+      <div class="advisor-stats" style="margin-bottom:20px;">
+        <div><div class="advisor-stat-num">2008</div><div class="advisor-stat-label">Founded</div></div>
+        <div><div class="advisor-stat-num">775+</div><div class="advisor-stat-label">Locations nationwide</div></div>
+        <div><div class="advisor-stat-num">50</div><div class="advisor-stat-label">States licensed</div></div>
+      </div>
+
+      <div class="mp-section-title" style="margin-bottom:10px;">Meet Kevin — Your Point of Contact</div>
+      <div class="advisor-card" style="margin-bottom: 20px;">
+        <div class="advisor-card-header">
+          <img src="https://d33wubrfki0l68.cloudfront.net/583055e3-b129-4ca0-8fc8-80cbf99e7369/Headshot%202024.png" alt="Kevin Byrne" style="width:56px;height:56px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+          <div style="flex:1;">
+            <div class="partner-badge">Movement Mortgage · Home Financing Partner</div>
+            <div class="advisor-name">Kevin Byrne</div>
+            <div class="advisor-title">Mortgage Advisor · Movement Mortgage · Quincy, MA</div>
+            <div class="advisor-live"><span class="live-dot"></span>Typically responds within 1 hour</div>
+            <!-- 2026-09-04, per Alex ("maybe include something to engage
+                 with"): real rating pulled from Kevin's own official
+                 Movement Mortgage profile (movement.com/lo/kevin-byrne),
+                 not invented — verified live before using it. -->
+            <div style="font-size:12px; color:var(--muted); margin-top:3px;">⭐ 4.99/5 · 179 client reviews</div>
+          </div>
+        </div>
+        <div style="font-size:13px; color:var(--navy); font-style:italic; margin: 2px 0 16px;">"Helping families finance the home that fits their life — not the other way around."</div>
+        <div class="advisor-stats">
+          <div><div class="advisor-stat-num">39</div><div class="advisor-stat-label">Years in business</div></div>
+          <div><div class="advisor-stat-num">4,000+</div><div class="advisor-stat-label">Loans closed</div></div>
+          <div><div class="advisor-stat-num">$1.5B+</div><div class="advisor-stat-label">Written lifetime</div></div>
+        </div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.65; margin: 16px 0;">Integrity and Professionalism are the cornerstones of my business. In over 30 years as a top producing mortgage loan officer, I have amassed a substantial wealth of experience, knowledge and perspective. I have had the privilege to work with over 3,000 families and individuals in assisting them in obtaining the American Dream of home ownership and building generational wealth through investing in real estate. Having written over $1.5 billion in residential mortgages, I am well versed in the various products offered in today's mortgage market.</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;">
+          <span class="mp-award">🏆 Scotsman's Guide 2025 Top 1% Loan Originator</span>
+          <span class="mp-award">🏆 President's Club — multiple years since 1990</span>
+        </div>
+        <!-- 2026-09-04, per Alex: "when we have available contact
+             information.. we want to list phone and email.. and when
+             someone clicks on the email.. outlook should pop up.. but
+             also have the email autopopulate with an email so Kevin can
+             get the email, have some basic information and than respond
+             quickly." Phone number is real, not invented — verified live
+             against Kevin's own official movement.com/lo/kevin-byrne
+             profile (same sourcing standard as his rating/licensed-states
+             elsewhere on this page). id="kevinEmailLink" gets its href
+             rewritten by aaWireContactEmail() (shared.js) on load with a
+             real, personalized mailto: body — the plain address below is
+             just the safe fallback if that JS never runs. -->
+        <div class="advisor-actions">
+          <a class="btn-book" href="mailto:kevin.byrne@movement.com" id="kevinEmailLink" style="text-align:center; text-decoration:none; box-sizing:border-box; display:block;">Email Kevin →</a>
+          <a class="btn-msg" href="tel:+17817183366" style="text-align:center; text-decoration:none; box-sizing:border-box; display:block; white-space:nowrap;">📞 (781) 718-3366</a>
+          <a class="btn-msg" href="https://www.linkedin.com/in/kevinbyrnemortgages/" target="_blank" rel="noopener" style="text-align:center; text-decoration:none; box-sizing:border-box; display:block;">LinkedIn</a>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <div class="mp-section-title">Products Offered</div>
+        <div style="display:flex; gap:7px; flex-wrap:wrap;">
+          <span class="mp-tag">Conventional Purchase</span>
+          <span class="mp-tag">Rate &amp; Term Refinance</span>
+          <span class="mp-tag">Cash-Out Refinance</span>
+          <span class="mp-tag">FHA Loans</span>
+          <span class="mp-tag">VA Loans</span>
+          <span class="mp-tag">USDA Loans</span>
+          <span class="mp-tag">Jumbo Loans</span>
+          <span class="mp-tag">HELOC / Second Mortgage</span>
+          <span class="mp-tag">Reverse Mortgage</span>
+          <span class="mp-tag">Construction / Renovation</span>
+          <span class="mp-tag">Investment Property</span>
+          <span class="mp-tag">DSCR Loans</span>
+          <span class="mp-tag">Non-QM / Bank Statement</span>
+          <span class="mp-tag">Bridge Loans</span>
+          <span class="mp-tag">Physician / Professional Loans</span>
+          <span class="mp-tag">First-Time Homebuyer Programs</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <div class="mp-section-title">A Great Fit If You're...</div>
+        <div style="display:flex; gap:7px; flex-wrap:wrap;">
+          <span class="mp-tag">First-Time Buyers</span>
+          <span class="mp-tag">Move-Up Buyers</span>
+          <span class="mp-tag">Refinancers</span>
+          <span class="mp-tag">Self-Employed Borrowers</span>
+          <span class="mp-tag">High-Net-Worth Clients</span>
+          <span class="mp-tag">Real Estate Investors</span>
+          <span class="mp-tag">Credit Challenges</span>
+          <span class="mp-tag">Relocation / Out-of-State</span>
+          <span class="mp-tag">Veterans / Military</span>
+          <span class="mp-tag">Physicians / Professionals</span>
+        </div>
+      </div>
+
+      <!-- 2026-09-04, per Alex: "maybe include something to engage with..
+           did kevin ever list what states he writes mortgages in?" His own
+           form submission didn't actually capture a states-licensed list
+           (checked the raw Netlify Forms data directly — no states_licensed
+           field value there), but the 4 states already on this page (MA,
+           RI, NH, FL) check out against his real, current, official
+           Movement Mortgage profile (movement.com/lo/kevin-byrne) and NMLS
+           #16416 — verified live before using it, not carried forward
+           un-sourced. Pulled out of a buried one-line caption into its own
+           scannable section (same .mp-tag chip pattern as Products/Fit
+           above) since "which states can this person actually help me in"
+           is exactly the kind of thing worth a visitor's own quick glance. -->
+      <div style="margin-bottom: 20px;">
+        <div class="mp-section-title">Kevin's Licensed In</div>
+        <div style="display:flex; gap:7px; flex-wrap:wrap; margin-bottom:8px;">
+          <span class="mp-tag">Massachusetts</span>
+          <span class="mp-tag">Rhode Island</span>
+          <span class="mp-tag">New Hampshire</span>
+          <span class="mp-tag">Florida</span>
+        </div>
+        <div style="font-size:11px; color:var(--muted); line-height:1.6;">Outside these four? Movement Mortgage is licensed nationwide — Kevin can typically hand you off to a licensed teammate in your state.</div>
+      </div>
+
+      <div class="vesting-card" style="margin-bottom: 20px;">
+        <div class="mp-section-title">About Movement Mortgage</div>
+        <div class="vesting-row"><span>Lender type</span><span class="vesting-pts spend">Mortgage Banker (in-house funding)</span></div>
+        <div class="vesting-row"><span>Company NMLS #</span><span class="vesting-pts spend">39179</span></div>
+        <div class="vesting-row"><span>Kevin's individual NMLS #</span><span class="vesting-pts spend">16416</span></div>
+      </div>
+
+      <div style="background: var(--yellow-bg); border: 1px solid var(--yellow-dark); border-radius: 12px; padding: 18px 20px;">
+        <div class="mp-section-title" style="margin-bottom:6px;">Apply Your Align Credits</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.6;">Use your Align Credits toward closing costs, appraisal fees, or other costs of working with Kevin — on their own, or combined with dollars to cover the rest.</div>
+      </div>
+    </div>
+  </div><!-- /ex-lanes-wrap -->
+  </div><!-- /mkt-body-layout -->
+  </div><!-- /exchangeView -->
+  <!-- ── CREDITS DETAIL MODAL — the full earn/vest/redeem breakdown that
+       used to sit directly on the dashboard; reachable from the link above
+       and from the "Credits" nav link. Reuses the disclosure modal's own
+       overlay/box/header/body classes rather than duplicating that pattern. ── -->
+  <div class="disclosure-overlay" id="creditsDetailModal">
+    <div class="disclosure-box" style="max-width: 640px;">
+      <div class="disclosure-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px;">
+        <div>
+          <h2>How Align Credits Work</h2>
+          <p>The full breakdown — earning and spending.</p>
+        </div>
+        <button class="btn-msg" onclick="closeCreditsDetail()" style="flex-shrink:0;">✕ Close</button>
+      </div>
+      <div class="disclosure-body">
+        <div class="vesting-grid" style="grid-template-columns: 1fr; gap: 20px;">
+
+          <div class="vesting-card" style="padding:0; border:none;">
+            <div class="vesting-card-title" style="margin-bottom:10px;">Earning Credits</div>
+            <div class="vesting-table">
+              <div class="vesting-row"><span>Complete your financial profile</span><span class="vesting-pts">+10</span></div>
+              <div class="vesting-row"><span>Schedule time with your advisor</span><span class="vesting-pts">+25</span></div>
+              <div class="vesting-row vesting-row-clickable" onclick="window.location.href='../?dept=insurance'"><span>Submit insurance information →</span><span class="vesting-pts">+10</span></div>
+              <div class="vesting-row vesting-row-clickable" onclick="window.location.href='../'"><span>Review quotes in the Marketplace →</span><span class="vesting-pts">+10</span></div>
+              <div class="vesting-row"><span>Complete a financial plan review</span><span class="vesting-pts">+10</span></div>
+            </div>
+          </div>
+
+          <!-- 2026-09-04, per Alex: "i think we want to remove the
+               vesting stuff. i am not wild about it. i don't think people
+               are goig to game this thing." Dropped the whole 90-day-delay
+               "Vesting Schedule" card that used to sit here (previously
+               justified as an anti-gaming measure, see this file's own
+               history above this comment for that reasoning). Every credit
+               is usable the moment it's earned now, full stop. NOTE: this
+               page's Credits modal is still the older flat Earning/
+               Vesting/Spending layout — it never got the History/Ways to
+               Earn/Purchase tab restructure that index.html and
+               marketplace/index.html got the same day; worth backporting
+               if this page's modal is ever revisited. -->
+
+          <div class="vesting-card" style="padding:0; border:none; border-top: 1px solid var(--border); padding-top: 20px;">
+            <div class="vesting-card-title" style="margin-bottom:10px;">Spending Credits</div>
+            <div class="vesting-table">
+              <div class="vesting-row"><span>Auto &amp; Home insurance review</span><span class="vesting-pts spend">10 credits</span></div>
+              <div class="vesting-row"><span>Life insurance policy review</span><span class="vesting-pts spend">25 credits</span></div>
+              <div class="vesting-row"><span>Beneficiary audit</span><span class="vesting-pts spend">10 credits</span></div>
+              <div class="vesting-row"><span>Will &amp; trust setup</span><span class="vesting-pts spend">25 credits</span></div>
+              <div class="vesting-row"><span>Tax preparation</span><span class="vesting-pts spend">25 credits</span></div>
+              <div class="vesting-row"><span>Home down payment boost</span><span class="vesting-pts spend">25 credits</span></div>
+              <div class="vesting-row"><span>Debt paydown contribution</span><span class="vesting-pts spend">10 credits</span></div>
+            </div>
+            <div style="font-size:11px; color:var(--muted); margin-top:10px; line-height:1.5;">1 credit = $1 value when applied toward Marketplace services. Credits have no cash value and cannot be transferred.</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="disclosures-footer-link">© AssetAlign · <a onclick="openFullDisclosures()">Disclosures</a></div>
+
+<!-- ── DISCLOSURE MODAL (short gate — scroll + checkbox required) ── -->
+<div class="disclosure-overlay" id="disclosureModal">
+  <div class="disclosure-box">
+    <div class="disclosure-header">
+      <h2>Before You Get Started</h2>
+      <p>Please read the following disclosures. This takes about a minute.</p>
+    </div>
+    <div class="disclosure-body" id="disclosureBody">
+      <h4>Item 1. Who We Are</h4>
+      <p>AssetAlign is a <strong>financial wellness enablement platform</strong>, operated by ABTW Corporation, which is registered as an investment adviser with the Massachusetts Securities Division. We connect you with the right financial solutions, efficiently — whether that's a vetted independent advisor or a trusted partner for insurance, estate planning, tax prep, or debt management. Advisors available through our platform are independent professionals, registered as investment advisers or broker-dealers in their own right; AssetAlign itself does not manage your investments or provide investment, legal, or tax advice directly.</p>
+
+      <h4>Item 2. Align Credits</h4>
+      <p>Align Credits are a loyalty reward issued solely by AssetAlign. They carry no monetary value outside the AssetAlign platform, cannot be exchanged for cash, and may only be redeemed for services in the AssetAlign Exchange. Credits tied to a real partner transaction (like a completed insurance quote) are available to use the moment you earn them; other credits vest 90 days after being earned. Credits are non-transferable.</p>
+      <p>Because you can earn and spend credits across different services, they may encourage you to try something you wouldn't otherwise — make each choice on its own merits, not your credit balance.</p>
+
+      <h4>Item 3. Your Information</h4>
+      <p>By using this platform, you consent to AssetAlign collecting and using your financial profile information — including goals, income range, and insurance information you provide — to facilitate advisor matching and partner recommendations. We may share relevant profile information with matched advisors and Exchange partners solely to facilitate service delivery. We do not sell your personal information to third parties.</p>
+
+      <h4>Item 4. No Guarantee</h4>
+      <p>AssetAlign does not guarantee the suitability, performance, qualifications, or conduct of any matched advisor or Exchange partner. Advisor and partner matching is based on profile compatibility and is for informational purposes only. All financial decisions remain solely your responsibility.</p>
+
+      <h4>Item 5. Our Registration</h4>
+      <p>ABTW Corporation (d/b/a AssetAlign) is registered as an investment adviser with the Massachusetts Securities Division and is not registered with the U.S. Securities and Exchange Commission (SEC). You can independently verify our registration and review our Form ADV at <strong>adviserinfo.sec.gov</strong>, a free public tool covering both state- and SEC-registered advisers.</p>
+
+      <h4>Item 6. How AssetAlign Makes Money</h4>
+      <p>AssetAlign may receive compensation — including referral fees and ongoing revenue share — from the financial advisors and Exchange partners (insurance, mortgage, estate planning, tax, and debt services) you connect with. This doesn't add to your cost. It may give us an incentive to favor advisors or partners who pay us more, so the decision to work with any of them is always yours to make independently. Mortgage-related compensation follows the additional rules set by the federal Real Estate Settlement Procedures Act (RESPA).</p>
+
+      <h4>Item 7. Questions</h4>
+      <p>If you have questions about these disclosures or our compensation arrangements, please contact us at <strong>compliance@assetalign.net</strong> before proceeding. The complete disclosure, including how we work with employers, is always available via the "Disclosures" link.</p>
+    </div>
+    <div class="disclosure-footer">
+      <label class="disclosure-check-row">
+        <input type="checkbox" id="disclosureCheck" onchange="toggleAgreeBtn()"/>
+        <span>I have read and understand AssetAlign's disclosures, including that AssetAlign receives compensation from advisors and Exchange partners, and that Align Credits create an incentive to use additional services.</span>
+      </label>
+      <div class="disclosure-scroll-hint" id="disclosureScrollHint">↓ Scroll down to read the full disclosure before you can agree<br/><button type="button" class="disclosure-scroll-tap" onclick="aaScrollDisclosureDown()">Tap here to keep reading ↓</button></div>
+      <button class="btn-disclose-agree" id="btnAgree" disabled onclick="agreeDisclosure()">I Agree &amp; Continue to My Dashboard →</button>
+      <button class="btn-disclose-decline" onclick="declineDisclosure()">I do not agree</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── FULL DISCLOSURES (complete reference, reachable anytime via the
+     footer link — not a consent gate, just a Close button). -->
+<div class="disclosure-overlay" id="fullDisclosuresModal">
+  <div class="disclosure-box">
+    <div class="disclosure-header">
+      <h2>AssetAlign Disclosures</h2>
+      <p>The complete picture of how AssetAlign works and is compensated.</p>
+    </div>
+    <div class="disclosure-body">
+      <h4>Item 1. Who We Are</h4>
+      <p>AssetAlign is a <strong>financial wellness enablement platform</strong>, operated by ABTW Corporation, which is registered as an investment adviser with the Massachusetts Securities Division. We connect you with the right financial solutions, efficiently — whether that's a vetted independent advisor or a trusted partner for insurance, estate planning, tax prep, or debt management. Advisors available through our platform are independent professionals, registered as investment advisers or broker-dealers in their own right; AssetAlign itself does not manage your investments or provide investment, legal, or tax advice directly.</p>
+
+      <h4>Item 2. Align Credits</h4>
+      <p>Align Credits are a loyalty reward issued solely by AssetAlign. They carry no monetary value outside the AssetAlign platform, cannot be exchanged for cash, and may only be redeemed for services in the AssetAlign Exchange. Credits tied to a real partner transaction (like a completed insurance quote) are available to use the moment you earn them; other credits vest 90 days after being earned. Credits are non-transferable.</p>
+      <p>Because you can earn and spend credits across different services, they may encourage you to try something you wouldn't otherwise — make each choice on its own merits, not your credit balance.</p>
+
+      <h4>Item 3. Your Information</h4>
+      <p>By using this platform, you consent to AssetAlign collecting and using your financial profile information — including goals, income range, and insurance information you provide — to facilitate advisor matching and partner recommendations. We may share relevant profile information with matched advisors and Exchange partners solely to facilitate service delivery. We do not sell your personal information to third parties.</p>
+
+      <h4>Item 4. No Guarantee</h4>
+      <p>AssetAlign does not guarantee the suitability, performance, qualifications, or conduct of any matched advisor or Exchange partner. Advisor and partner matching is based on profile compatibility and is for informational purposes only. All financial decisions remain solely your responsibility.</p>
+
+      <h4>Item 5. Our Registration</h4>
+      <p>ABTW Corporation (d/b/a AssetAlign) is registered as an investment adviser with the Massachusetts Securities Division and is not registered with the U.S. Securities and Exchange Commission (SEC). You can independently verify our registration and review our Form ADV at <strong>adviserinfo.sec.gov</strong>, a free public tool covering both state- and SEC-registered advisers.</p>
+
+      <h4>Item 6. How AssetAlign Makes Money</h4>
+      <p>AssetAlign may receive compensation — including referral fees and ongoing revenue share — from the financial advisors and Exchange partners (insurance, mortgage, estate planning, tax, and debt services) you connect with. This doesn't add to your cost. It may give us an incentive to favor advisors or partners who pay us more, so the decision to work with any of them is always yours to make independently. Mortgage-related compensation follows the additional rules set by the federal Real Estate Settlement Procedures Act (RESPA).</p>
+
+      <h4>Item 7. Employer &amp; Introducing-Party Compensation</h4>
+      <p>AssetAlign may also compensate the organization that employs you, or brokers and consultants who help bring AssetAlign to your workplace — this is common in workplace benefits programs and doesn't change what you pay. Your employer and these other parties can't see which employees use AssetAlign or which services anyone personally accesses.</p>
+
+      <h4>Item 8. Questions</h4>
+      <p>If you have questions about these disclosures or our compensation arrangements, please contact us at <strong>compliance@assetalign.net</strong>.</p>
+    </div>
+    <div class="disclosure-footer">
+      <button class="btn-disclose-agree" onclick="closeFullDisclosures()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TRAIL ENDS ── -->
+<div class="trail-ends-overlay" id="trailEndsOverlay">
+  <div class="trail-ends-box">
+    <div class="trail-ends-icon">🔒</div>
+    <h2>We respect your decision.</h2>
+    <p>AssetAlign requires all users to acknowledge our revenue sharing disclosures before accessing the platform. This helps ensure you have full transparency into how we operate and earn revenue — because that's the right way to do this.</p>
+    <p style="font-size:13px; color:rgba(255,255,255,0.4);">If you change your mind, you can return at any time.</p>
+    <button class="btn-trail-back" onclick="goBackToDisclosure()">Go Back &amp; Review Disclosures</button>
+  </div>
+</div>
+
+<!-- SUCCESS OVERLAY -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-box">
+    <div class="check">🎉</div>
+    <h3>We're on it!</h3>
+    <p>Your insurance review is underway. We're shopping the market now and will have results for you within 24 hours. You'll get a notification when your quotes are ready.</p>
+    <div class="success-credits">⬡ +25 Align Credits added to your account</div>
+    <button class="btn-success" onclick="document.getElementById('successOverlay').classList.remove('show')">Back to My Credits</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="../../shared.js?v=20260913f"></script>
+<script>
+  // 2026-09-04 — Kevin's own real page (see shared.js's header note and
+  // marketplace/index.html's "Meet Kevin" spotlight, which now links here
+  // instead of toggling an in-page panel). Only needs the session for nav/
+  // credits — no department filtering, ranking, or quote/estate flows, none
+  // of which exist on this page.
+  function initPartnerPage() {
+    const session = aaResolveSession();
+    aaPaintNav(session);
+    setLiveCredits(session.credits);
+    aaShowDisclosureIfNeeded();
+    aaWireContactEmail('kevinEmailLink', 'kevin.byrne@movement.com', 'Kevin', 'a mortgage with Movement Mortgage');
+  }
+  initPartnerPage();
+
+  function openCreditsDetail() {
+    document.getElementById('creditsDetailModal').classList.add('show');
+    aaLockBodyScroll();
+  }
+  function closeCreditsDetail() {
+    document.getElementById('creditsDetailModal').classList.remove('show');
+    aaUnlockBodyScroll();
+  }
+</script>
+
+</body>
+</html>
