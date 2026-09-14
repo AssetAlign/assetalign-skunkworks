@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meridian Industries — Company Announcement</title>
+<style>
+  :root{
+    --page-bg:#eef0f3;
+    --card-bg:#ffffff;
+    --border:#dfe3e8;
+    --ink:#1c2733;
+    --muted:#5a6572;
+    --meridian-navy:#1f3a5f;
+    --meridian-accent:#2e6b4f;
+    --link:#1a5fb4;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--page-bg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    padding:32px 16px 80px;
+  }
+  .mail-shell{
+    max-width:700px;
+    margin:0 auto;
+  }
+  .mail-meta-label{
+    font-size:12px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    margin:0 0 10px 4px;
+  }
+  .mail-card{
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:0 1px 3px rgba(20,30,40,0.06);
+  }
+  .mail-header{
+    padding:20px 24px;
+    border-bottom:1px solid var(--border);
+  }
+  .mail-subject{
+    font-size:18px;
+    font-weight:600;
+    margin:0 0 14px;
+    color:var(--ink);
+  }
+  .mail-row{
+    display:flex;
+    gap:10px;
+    font-size:13.5px;
+    line-height:1.6;
+    color:var(--muted);
+  }
+  .mail-row b{
+    color:var(--ink);
+    font-weight:600;
+    min-width:44px;
+  }
+  .mail-avatar{
+    width:38px;height:38px;border-radius:50%;
+    background:var(--meridian-navy);
+    color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:14px;
+    flex-shrink:0;
+  }
+  .mail-from-block{display:flex;gap:12px;align-items:center;margin-bottom:14px;}
+  .mail-from-name{font-weight:600;font-size:14.5px;color:var(--ink);}
+  .mail-from-email{font-size:12.5px;color:var(--muted);}
+  .mail-body{
+    padding:28px 28px 8px;
+    font-size:15px;
+    line-height:1.65;
+  }
+  .mail-body p{margin:0 0 16px;}
+  .mail-body .lede{font-size:15.5px;}
+  .disorganize-block{
+    background:#f6f7f9;
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:16px 18px;
+    margin:20px 0;
+    font-size:14.5px;
+    color:var(--ink);
+  }
+  .disorganize-block .tally{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px 10px;
+    margin-top:10px;
+  }
+  .disorganize-block .chip{
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:999px;
+    padding:4px 10px;
+    font-size:12.5px;
+    color:var(--muted);
+  }
+  .cta-wrap{
+    text-align:left;
+    margin:26px 0 6px;
+  }
+  .cta-btn{
+    display:inline-block;
+    background:var(--meridian-accent);
+    color:#fff !important;
+    text-decoration:none;
+    font-weight:600;
+    font-size:15px;
+    padding:13px 26px;
+    border-radius:6px;
+  }
+  .cta-sub{
+    font-size:12.5px;
+    color:var(--muted);
+    margin-top:10px;
+  }
+  .fine-print{
+    padding:18px 28px 26px;
+    border-top:1px solid var(--border);
+    font-size:12px;
+    line-height:1.7;
+    color:var(--muted);
+    background:#fafbfc;
+  }
+  .fine-print b{color:var(--ink);}
+  .signoff{margin-top:22px;}
+  .signoff .name{font-weight:600;color:var(--ink);}
+  .signoff .title{color:var(--muted);font-size:13.5px;}
+
+  .review-rail{
+    max-width:700px;
+    margin:22px auto 0;
+    background:#fff9e8;
+    border:1px solid #eaddad;
+    border-radius:8px;
+    padding:14px 18px;
+    font-size:12.5px;
+    color:#6b5a1f;
+    line-height:1.6;
+  }
+  .review-rail b{color:#4d3f10;}
+</style>
+</head>
+<body>
+
+<div class="mail-shell">
+  <p class="mail-meta-label">Skunkworks V2 &middot; Step 1 of the redesign &mdash; the employee's very first touchpoint</p>
+
+  <div class="mail-card">
+    <div class="mail-header">
+      <div class="mail-subject">One place for your whole financial life (2 minutes to set up)</div>
+      <div class="mail-from-block">
+        <div class="mail-avatar">DR</div>
+        <div>
+          <div class="mail-from-name">Dana Reyes</div>
+          <div class="mail-from-email">CEO, Meridian Industries &middot; dana.reyes@meridianindustries.com</div>
+        </div>
+      </div>
+      <div class="mail-row"><b>To:</b><span>All Meridian Industries Employees</span></div>
+    </div>
+
+    <div class="mail-body">
+      <p class="lede">Hi team,</p>
+
+      <p>Quick one from me today.</p>
+
+      <p>Take a second and think about everywhere your money actually lives right now.</p>
+
+      <div class="disorganize-block">
+        A checking account. Maybe a savings account somewhere else. A 401(k) from this job, maybe another from a old one. A mortgage. A couple of insurance policies. A credit card or two you're tracking separately.
+        <div class="tally">
+          <span class="chip">Bank</span>
+          <span class="chip">401(k)</span>
+          <span class="chip">Brokerage</span>
+          <span class="chip">Mortgage</span>
+          <span class="chip">Life insurance</span>
+          <span class="chip">Auto insurance</span>
+          <span class="chip">Home insurance</span>
+          <span class="chip">Credit cards</span>
+        </div>
+      </div>
+
+      <p>Most of us are juggling <strong>eight or more separate logins</strong> just to answer one simple question: "how am I actually doing?" That's not a personal failing &mdash; it's just how financial life works today. Nobody hands you a way to see it all in one place.</p>
+
+      <p><strong>AssetAlign is now available to everyone at Meridian Industries.</strong> It's a voluntary program, completely free to use, and it's run entirely by AssetAlign &mdash; not by us. We're simply making sure you know it exists. Whether or not you use it is entirely up to you.</p>
+
+      <p>Here's what it actually does: you tell it which providers you already use &mdash; takes about two minutes &mdash; and it gives you one real, organized picture of your financial life instead of six different apps. As you go, you'll pick up Align Credits along the way, which convert into real value with AssetAlign's partners.</p>
+
+      <p>And when you're ready &mdash; no pressure, no timeline &mdash; AssetAlign can also connect you with a vetted, independent, <strong>fiduciary</strong> financial advisor to build you an actual plan. That's there when it's useful to you. It's not something you have to do today, and it's not the first step. Getting organized is the first step. A plan is what comes next, once you know where you stand.</p>
+
+      <div class="cta-wrap">
+        <a class="cta-btn" href="#">Get organized &rarr;</a>
+        <div class="cta-sub">Takes about 2 minutes. Free. Optional. Your data, your choice.</div>
+      </div>
+
+      <div class="signoff">
+        <p>Dana</p>
+        <div class="name">Dana Reyes</div>
+        <div class="title">CEO, Meridian Industries</div>
+      </div>
+    </div>
+
+    <div class="fine-print">
+      <b>AssetAlign</b> is a voluntary financial wellness program made available to Meridian Industries employees at no cost. It is administered independently by AssetAlign, not by Meridian Industries. Participation is optional and has no effect on your employment or compensation. AssetAlign may be compensated by some of the partners referenced in its marketplace &mdash; full details are disclosed inside the platform.
+    </div>
+  </div>
+
+  <div class="review-rail">
+    <b>Design note (not part of the email itself):</b> this is the very first artifact in the V2 redesign track &mdash; the employee's actual first touchpoint, before onboarding even starts. It deliberately leads with disorganization &rarr; "get organized" &rarr; the Financial Passport promise, and only mentions an advisor once, at the very end, explicitly tied to the word "fiduciary" and framed as a later step, not the ask. ERISA-safe framing applied throughout (voluntary / available / administered by AssetAlign, never "we're giving you" or "your benefit from us"). Not yet reviewed by counsel or Ryan &mdash; flagging per standing practice on anything employee-comms-adjacent.
+  </div>
+</div>
+
+</body>
+</html>
