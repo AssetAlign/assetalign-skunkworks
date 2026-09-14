@@ -1677,6 +1677,12 @@
        so it's excluded from grid item placement per spec regardless of
        its own nth-child number. */
     .dash-tile-columns > *:nth-child(7) { grid-column: 1 / -1; grid-row: 4; }
+    /* SKUNKWORKS -- Mortgage Rate Watch, 2026-09-14: real 8th child, added
+       right after Rate Watch (#rateWatchAlert was confirmed the actual
+       last child before this -- see that comment's own nth-child(7) dev
+       note) rather than inserted in the middle, so nothing above needed
+       renumbering. Same full-width single-row treatment. */
+    .dash-tile-columns > *:nth-child(8) { grid-column: 1 / -1; grid-row: 5; }
     @media (max-width: 760px) {
       .dash-tile-columns { grid-template-columns: 1fr; }
       .dash-tile-columns > *:nth-child(1) { grid-column: 1; grid-row: 1; }
@@ -1686,6 +1692,7 @@
       .dash-tile-columns > *:nth-child(5) { grid-column: 1; grid-row: 5; }
       .dash-tile-columns > *:nth-child(6) { grid-column: 1; grid-row: 6; }
       .dash-tile-columns > *:nth-child(7) { grid-column: 1; grid-row: 7; }
+      .dash-tile-columns > *:nth-child(8) { grid-column: 1; grid-row: 8; }
     }
     /* Explicit dark background now (not the translucent-white-on-dark-parent
        trick from round 1) — .nudge-sidebar is a top-level section now, on
@@ -2499,6 +2506,20 @@
        states (invite / watching / active finding) — see that function;
        it's never left empty the way the id name here might suggest. -->
   <div id="rateWatchAlert"></div>
+
+  <!-- SKUNKWORKS -- Mortgage Rate Watch, 2026-09-14, per Alex: "when
+       someone says buying a house is their next goal.. they could still
+       be 8 years out so that's not an immediate opportunity.. how can we
+       convert this into something.. get notification on rates, is there
+       a rate predictor." Same eyebrow/box pattern as Rate Watch above
+       (renderMortgageRateWatchBox() renders one of its own real states)
+       but for the OTHER half of the mortgage lifecycle: someone whose
+       goal is buying a home but doesn't have one yet -- not shown for
+       someone who already has a mortgage (the refi calculator in
+       Marketplace is the right tool for them instead) or whose goal
+       isn't home-buying at all. Only ever rendered by JS, same as
+       #rateWatchAlert -- an empty container here is expected pre-render. -->
+  <div id="mortgageRateWatchAlert"></div>
 
   <!-- ── CREDITS DETAIL MODAL — the full earn/vest/redeem breakdown that
        used to sit directly on the dashboard; reachable from the link above
@@ -3421,6 +3442,7 @@
     if (session.lifeQuoteDone) rows.push(earnRow('lifequote', 'PolicyGenius — term life quote submitted', 5));
     if (session.beneficiaryAuditDone) rows.push(earnRow('beneficiary', 'Beneficiary audit started', 5));
     if (session.refiLeadSent) rows.push(earnRow('refilead', 'Mortgage refinance lead sent to Kevin', 5));
+    if (session.mortgageRateWatch) rows.push(earnRow('mortgageratewatch', 'Added to Mortgage Rate Watch', 5));
     if (session.estatePlanningDone) rows.push({ label: 'MyGoodTrust — Will & Trust Setup', pts: '-139', earn: false });
     if (session.estateRenewalDone) rows.push({ label: 'MyGoodTrust — Year 2 renewal', pts: '-39', earn: false });
     if (session.lifeInsurancePaid) rows.push({ label: 'Life Insurance — annual payment', pts: '-480', earn: false });
@@ -3537,6 +3559,119 @@
         '</div>' +
         '<button class="rate-watch-cta ghost" onclick="openAccountsScreen(\'homeinsurance\')">Add it →</button>' +
       '</div></div>';
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // SKUNKWORKS -- Mortgage Rate Watch, 2026-09-14, per Alex: "when someone
+  // says buying a house is their next goal.. they could still be 8 years
+  // out so that's not an immediate opportunity.. how can we convert this
+  // into something.. get notification on rates, is there a rate
+  // predictor that is generally used." Real, published consensus
+  // forecasts exist -- MBA projects 30-year rates averaging ~6.5% through
+  // 2026-2028 (noradarealestate.com, citing MBA's Mortgage Finance
+  // Forecast); Fannie Mae's Economic and Strategic Research Group
+  // projects ~6.4% through 2026, easing to ~6.3% from Q2 2027
+  // (thestreet.com, citing Fannie Mae's forecast) -- cited directly
+  // rather than inventing a predictive model, which no one does
+  // credibly. Same real-vs-invented discipline as the refi calculator's
+  // Freddie Mac PMMS current-rate figure just below. Only shown for
+  // someone whose goal is buying a home AND who doesn't have a mortgage
+  // account yet -- once they do, the refi calculator (Marketplace) is
+  // the right tool instead. Converts a multi-year goal into an ongoing
+  // watch relationship instead of one missed moment, and gives Kevin a
+  // real, well-timed reason to reach out instead of a cold "mentioned
+  // wanting to buy once."
+  // ═══════════════════════════════════════════════════════════════════
+  // Same real published benchmark as marketplace/index.html's refi
+  // calculator (Freddie Mac PMMS, week of 2026-09-03, freddiemac.com/pmms)
+  // -- kept as the same literal figure in both files rather than each
+  // guessing its own number.
+  const CURRENT_AVG_30YR_RATE = 6.71;
+  const MORTGAGE_RATE_FORECAST_LINE = 'Major forecasters (MBA, Fannie Mae) expect 30-year rates to hold in the mid-6% range through 2026–2027 — unlikely to drop under 6% anytime soon.';
+  function renderMortgageRateWatchBox() {
+    const container = document.getElementById('mortgageRateWatchAlert');
+    if (!container) return;
+    const session = aaLoadSession();
+    const hasMortgage = getSavedAccounts().some(function (a) { return a.category === 'mortgage'; });
+    if (session.goal !== 'home' || hasMortgage) { container.innerHTML = ''; return; }
+
+    const eyebrow = '<div class="rate-watch-eyebrow">🏡 Mortgage Rate Watch</div>';
+
+    if (!session.mortgageRateWatch) {
+      container.innerHTML = '<div class="rate-watch-box">' + eyebrow +
+        '<div class="rate-watch-row">' +
+          '<div class="rate-watch-icon">🔔</div>' +
+          '<div class="rate-watch-body">' +
+            '<div class="rate-watch-title">Not buying yet? We\'ll watch rates until you are.</div>' +
+            '<div class="rate-watch-sub">Set an optional target rate and we\'ll let you know the moment it\'s worth a real conversation.</div>' +
+          '</div>' +
+          '<button class="rate-watch-cta ghost" onclick="openMortgageRateWatchPrompt()">Watch rates →</button>' +
+        '</div></div>';
+      return;
+    }
+
+    const target = parseFloat(session.mortgageTargetRate);
+    const targetHit = target && CURRENT_AVG_30YR_RATE <= target;
+
+    if (targetHit) {
+      container.innerHTML = '<div class="rate-watch-box">' + eyebrow +
+        '<div class="rate-watch-row">' +
+          '<div class="rate-watch-icon">📣</div>' +
+          '<div class="rate-watch-body">' +
+            '<div class="rate-watch-title">Rates hit your target of ' + target + '%.</div>' +
+            '<div class="rate-watch-sub">Today\'s average 30-year rate is ' + CURRENT_AVG_30YR_RATE + '% (Freddie Mac PMMS) — at or under what you were watching for. Worth a real conversation now.</div>' +
+          '</div>' +
+          '<button class="rate-watch-cta" onclick="window.location.href=aaExternalHref(\'marketplace/?dept=mortgage\')">Talk to Kevin →</button>' +
+        '</div></div>';
+      return;
+    }
+
+    container.innerHTML = '<div class="rate-watch-box">' + eyebrow +
+      '<div class="rate-watch-row">' +
+        '<div class="rate-watch-icon">✓</div>' +
+        '<div class="rate-watch-body">' +
+          '<div class="rate-watch-title">Watching mortgage rates' + (target ? ' for ' + target + '% or better' : '') + '</div>' +
+          '<div class="rate-watch-sub">Today\'s average is ' + CURRENT_AVG_30YR_RATE + '% (Freddie Mac PMMS). ' + MORTGAGE_RATE_FORECAST_LINE + '</div>' +
+        '</div>' +
+      '</div></div>';
+  }
+  function openMortgageRateWatchPrompt() {
+    const existing = document.getElementById('mortgageRateWatchModal');
+    if (existing) { existing.classList.add('show'); aaLockBodyScroll(); return; }
+    const modal = document.createElement('div');
+    modal.className = 'disclosure-overlay';
+    modal.id = 'mortgageRateWatchModal';
+    modal.innerHTML = '<div class="disclosure-box" style="max-width:420px;height:auto;">' +
+      '<div class="disclosure-body" style="padding:28px 26px;">' +
+      '<div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:8px;">We\'ll watch mortgage rates for you.</div>' +
+      '<div style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:16px;">Today\'s average 30-year rate is ' + CURRENT_AVG_30YR_RATE + '% (Freddie Mac PMMS). Set a target rate and we\'ll flag it the moment it\'s hit — or just watch in general.</div>' +
+      '<label style="display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;">Target rate, optional (%)</label>' +
+      '<input type="text" id="mrwTargetRate" placeholder="e.g. 6.0" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:\'Outfit\',sans-serif;margin-bottom:14px;">' +
+      '<button class="btn-run-quotes" style="width:100%;" onclick="confirmMortgageRateWatch()">Watch rates for me →</button>' +
+      '<button class="btn-msg" style="width:100%;margin-top:8px;" onclick="closeMortgageRateWatchPrompt()">Cancel</button>' +
+      '</div></div>';
+    document.body.appendChild(modal);
+    modal.classList.add('show');
+    aaLockBodyScroll();
+  }
+  function closeMortgageRateWatchPrompt() {
+    const modal = document.getElementById('mortgageRateWatchModal');
+    if (modal) modal.classList.remove('show');
+    aaUnlockBodyScroll();
+  }
+  // Queued, not immediate -- same "no confirmed revenue yet" logic as the
+  // other non-Zebra earn events from the credit-economics pass (see
+  // shared.js's AA_VESTING_DAYS dev note). Opting into a watch is a real
+  // signal of intent, but doesn't correspond to a real dollar AssetAlign
+  // has actually collected the way a completed Zebra quote does.
+  function confirmMortgageRateWatch() {
+    const input = document.getElementById('mrwTargetRate');
+    const target = input ? parseFloat(input.value.replace(/[^0-9.]/g, '')) : null;
+    aaSaveSession({ mortgageRateWatch: true, mortgageTargetRate: (target && target > 0) ? target : null });
+    aaQueuePendingCredit('mortgageratewatch', 'Added to Mortgage Rate Watch', 5);
+    closeMortgageRateWatchPrompt();
+    renderMortgageRateWatchBox();
+    showToast('Watching mortgage rates for you');
   }
 
   const ACCOUNT_CATEGORIES = [
@@ -3936,6 +4071,11 @@
     // account is saved, not just on page load, so adding a Home Insurance
     // tile can surface the alert immediately without a refresh.
     if (typeof renderRateWatchBox === 'function') renderRateWatchBox();
+    // SKUNKWORKS -- Mortgage Rate Watch, 2026-09-14: same reasoning --
+    // adding a real mortgage account should hide this box immediately
+    // (the refi calculator is the right tool once you have one), not
+    // wait for a refresh.
+    if (typeof renderMortgageRateWatchBox === 'function') renderMortgageRateWatchBox();
     // SKUNKWORKS -- credit economics pass, 2026-09-13, per Alex: "with
     // things like zebra.. we get 30 dollars for every time they are doing
     // a quote.. so we can give someone 10 credits on that no problem..
@@ -4244,6 +4384,7 @@
   })();
   renderAccountsShelf();
   renderRateWatchBox(); // SKUNKWORKS — Insurance Rate Watch, see its own function above
+  renderMortgageRateWatchBox(); // SKUNKWORKS -- Mortgage Rate Watch, see its own function above
 
   // ── NUDGE ──
   // 2026-09-03 — Alex: the insurance pitch used to be shown immediately,
