@@ -98,6 +98,13 @@
     <div class="log">
 
       <div class="entry">
+        <div class="entry-date">2026-09-14</div>
+        <div class="entry-title"><h3>V2 — full redesign track, forked from the live replicas</h3><span class="status local">In progress — new fork, v1 untouched</span></div>
+        <div class="entry-desc">A parallel track for a real positioning shift: lead with AssetAlign as a decision-making/organization platform (the Financial Passport, "never fill out documents again," rewards running quietly underneath) rather than leading with advisor-matching — the advisor conversation becomes a later, progressive nudge once AssetAlign actually knows the member, not the front door. Forked <code>dashboard-replica/</code> and <code>onboarding-replica/</code> into <code>/v2/</code> as the starting point so nothing here touches the live v1 replicas — those stay exactly as they are for side-by-side comparison. First artifact: a CEO-to-employee announcement email (the actual first thing an employee would ever see), rebuilding the pitch around financial disorganization → get organized → a plan comes later, from a real fiduciary. ERISA-safe framing applied (voluntary/available, administered by AssetAlign not the employer).</div>
+        <a class="entry-link" href="https://assetalign.github.io/assetalign-skunkworks/v2/" target="_blank" rel="noopener">→ Start here: the CEO email</a>
+      </div>
+
+      <div class="entry">
         <div class="entry-date">2026-09-11</div>
         <div class="entry-title"><h3>Advisor off-ramp — skip matching, still get the dashboard</h3><span class="status local">In progress — replica only</span></div>
         <div class="entry-desc">Tests letting someone decline advisor-matching during onboarding without losing the rest of the product — an intentional reversal of "booking is the only path forward," since Marketplace/Rate Watch/credits now offer real value on their own. Added a new <code>onboarding-replica/</code> (full copy of the real onboarding prototype) with a reassurance-framed off-ramp on the scheduling screen; picking it hands off to <code>dashboard-replica/</code> with an explicit <code>advisor_skipped</code> flag instead of a fake match. The dashboard now has an honest "not matched yet" state throughout — goal tracker, Your Advisor card, activity feed, tutorial copy — plus a real "Explore On Your Own" card pointing at what's available without an advisor.</div>
